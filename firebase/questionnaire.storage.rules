@@ -1,0 +1,26 @@
+// Cloud Storage rules for index.html logo uploads.
+//
+// Paste the `match /questionnaireUploads/...` block into your existing rules
+// (Firebase console > Storage > Rules), inside `match /b/{bucket}/o { ... }`.
+//
+// Clients can upload design files up to 20 MB but cannot list, read, overwrite
+// or delete anything. You download files from the Firebase console.
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    match /questionnaireUploads/{submissionId}/{fileName} {
+      allow read, update, delete: if false;
+      allow create: if request.resource.size < 20 * 1024 * 1024
+                    && (request.resource.contentType.matches('image/.*')
+                        || request.resource.contentType in [
+                             'application/pdf',
+                             'application/postscript',
+                             'application/illustrator',
+                             'application/octet-stream'
+                           ]);
+    }
+
+  }
+}

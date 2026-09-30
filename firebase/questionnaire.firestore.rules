@@ -1,0 +1,35 @@
+// Firestore rules for index.html.
+//
+// Paste the `match /questionnaireSubmissions/...` block below into your existing
+// rules (Firebase console > Firestore Database > Rules), inside
+// `match /databases/{database}/documents { ... }`, next to the syncGroups rule
+// the todo app already uses. Don't replace your whole rules file with this.
+//
+// Anyone can create a submission, but nobody can read, edit or delete one from
+// the browser. You view submissions in the Firebase console.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /questionnaireSubmissions/{submissionId} {
+      allow read, update, delete: if false;
+      allow create: if request.resource.data.keys().hasOnly(
+                         ['companyName', 'answers', 'contacts', 'files', 'summary', 'submittedAt', 'userAgent'])
+                    && request.resource.data.companyName is string
+                    && request.resource.data.companyName.size() > 0
+                    && request.resource.data.companyName.size() <= 200
+                    && request.resource.data.answers is map
+                    && request.resource.data.answers.size() <= 60
+                    && request.resource.data.answers['AI Workflow Acknowledged'] == 'Yes'
+                    && request.resource.data.contacts is list
+                    && request.resource.data.contacts.size() <= 20
+                    && request.resource.data.files is list
+                    && request.resource.data.files.size() <= 20
+                    && request.resource.data.summary is string
+                    && request.resource.data.summary.size() <= 100000
+                    && request.resource.data.submittedAt == request.time;
+    }
+
+  }
+}
