@@ -4,14 +4,21 @@
 // engler-questionnaire project, replacing what's there, then Publish.
 //
 // Clients can upload design files up to 20 MB but cannot list, read, overwrite
-// or delete anything. You download files from the Firebase console.
+// or delete anything. Only the admin account (signed in on responses.html) can
+// view or delete uploads. Replace PASTE_ADMIN_UID_HERE with the admin user's
+// UID from Authentication > Users.
 
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
+    function isAdmin() {
+      return request.auth != null && request.auth.uid == 'PASTE_ADMIN_UID_HERE';
+    }
+
     match /questionnaireUploads/{submissionId}/{fileName} {
-      allow read, update, delete: if false;
+      allow read, delete: if isAdmin();
+      allow update: if false;
       allow create: if request.resource.size < 20 * 1024 * 1024
                     && (request.resource.contentType.matches('image/.*')
                         || request.resource.contentType in [
