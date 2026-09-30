@@ -5,15 +5,15 @@
 //
 // Clients can upload design files up to 20 MB but cannot list, read, overwrite
 // or delete anything. Only the admin account (signed in on responses.html) can
-// view or delete uploads. Replace PASTE_ADMIN_UID_HERE with the admin user's
-// UID from Authentication > Users.
+// view or delete uploads. isAdmin() below holds the admin user's
+// UID; it comes from Authentication > Users.
 
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
     function isAdmin() {
-      return request.auth != null && request.auth.uid == 'PASTE_ADMIN_UID_HERE';
+      return request.auth != null && request.auth.uid == 'TyahIAOe0ZgcOZC1d8xOf0j0DrT2';
     }
 
     match /questionnaireUploads/{submissionId}/{fileName} {

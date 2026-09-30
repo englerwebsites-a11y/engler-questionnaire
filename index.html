@@ -190,6 +190,10 @@
     .thanks { display: none; text-align: center; padding: 60px 32px; }
     .thanks h2 { font-size: 1.8rem; margin-bottom: 10px; }
     .thanks p { color: var(--ink-soft); }
+    .thanks .thanks-files {
+      max-width: 520px; margin: 20px auto 0; padding: 14px 18px; border-radius: 10px;
+      background: #FDF3F3; color: var(--danger); font-size: 0.9rem;
+    }
 
     footer { border-top: 1px solid var(--silver-line); padding: 24px 32px; }
     .footer-inner {
@@ -467,6 +471,7 @@
     <div class="eyebrow">Received</div>
     <h2>Thank you!</h2>
     <p>We've got your answers and will be in touch shortly to schedule a kickoff call.</p>
+    <p class="thanks-files" id="thanksFiles" hidden></p>
   </div>
 
   <footer>
@@ -493,6 +498,11 @@
     const SUBMISSIONS_COLLECTION = 'questionnaireSubmissions';
     const FIREBASE_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
     const MAX_FILE_BYTES = 20 * 1024 * 1024;
+    const UPLOAD_STALL_MS = 30 * 1000;       // give up on a file after 30 s with no progress
+    const SAVE_TIMEOUT_MS = 20 * 1000;
+    const RESIZE_OVER_BYTES = 4 * 1024 * 1024;
+    const MAX_IMAGE_EDGE = 3000;             // px, longest side after resizing
+    const RESIZABLE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
     const STORAGE_KEY = 'engler-questionnaire-v1';
 
     const form = document.getElementById('questionnaire');
@@ -661,7 +671,12 @@
       URL.revokeObjectURL(a.href);
     }
 
-    function showThanks() {
+    function showThanks(failedFiles = []) {
+      if (failedFiles.length) {
+        const note = document.getElementById('thanksFiles');
+        note.textContent = `Your answers were saved, but we couldn't receive ${failedFiles.join(', ')}. Please email ${failedFiles.length > 1 ? 'those files' : 'that file'} to your Engler contact.`;
+        note.hidden = false;
+      }
       form.parentElement.style.display = 'none';
       document.querySelector('.hero').style.display = 'none';
       document.getElementById('thanks').style.display = 'block';
@@ -679,25 +694,73 @@
         import(FIREBASE_SDK + 'firebase-storage.js')
       ]);
       const app = appMod.getApps()[0] || appMod.initializeApp(FIREBASE_CONFIG);
-      firebaseMods = { fs: fsMod, st: stMod, db: fsMod.getFirestore(app), storage: stMod.getStorage(app) };
+      const storage = stMod.getStorage(app);
+      // The SDK otherwise retries a failing upload for up to 10 minutes.
+      stMod.setMaxUploadRetryTime(storage, UPLOAD_STALL_MS);
+      stMod.setMaxOperationRetryTime(storage, UPLOAD_STALL_MS);
+      firebaseMods = { fs: fsMod, st: stMod, db: fsMod.getFirestore(app), storage };
       return firebaseMods;
     }
 
-    // Uploads each attachment; a failed upload is recorded rather than blocking the submission.
-    async function uploadFiles({ st, storage }, submissionId) {
-      const results = [];
-      for (const f of fileInput.files) {
-        const entry = { name: f.name, size: f.size, type: f.type || 'application/octet-stream' };
-        if (f.size > MAX_FILE_BYTES) { results.push({ ...entry, error: 'File larger than 20 MB' }); continue; }
-        const path = `questionnaireUploads/${submissionId}/${f.name.replace(/[^\w.\-]+/g, '_')}`;
-        try {
-          await st.uploadBytes(st.ref(storage, path), f, { contentType: entry.type });
-          results.push({ ...entry, path });
-        } catch (e) {
-          results.push({ ...entry, error: e.code || String(e) });
-        }
+    // Phone photos are often 5–15 MB; scale big ones down before uploading.
+    // Logos and small images are sent untouched so nothing loses quality.
+    async function shrinkImage(file) {
+      if (!RESIZABLE_TYPES.includes(file.type) || file.size <= RESIZE_OVER_BYTES) return file;
+      try {
+        const bitmap = await createImageBitmap(file);
+        const scale = Math.min(1, MAX_IMAGE_EDGE / Math.max(bitmap.width, bitmap.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(bitmap.width * scale);
+        canvas.height = Math.round(bitmap.height * scale);
+        canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        bitmap.close();
+        const blob = await new Promise(r => canvas.toBlob(r, file.type, 0.88));
+        return blob && blob.size < file.size ? blob : file;
+      } catch (e) {
+        return file;
       }
-      return results;
+    }
+
+    // Uploads all attachments in parallel, reporting combined progress. A file
+    // that fails or stops making progress is recorded as failed rather than
+    // blocking the submission.
+    async function uploadFiles({ st, storage }, submissionId, onProgress) {
+      const files = [...fileInput.files];
+      const sent = new Array(files.length).fill(0);
+      const sizes = new Array(files.length).fill(0);
+      const report = () => {
+        const total = sizes.reduce((a, b) => a + b, 0);
+        if (total) onProgress(Math.round(sent.reduce((a, b) => a + b, 0) / total * 100));
+      };
+
+      return Promise.all(files.map(async (f, i) => {
+        const entry = { name: f.name, size: f.size, type: f.type || 'application/octet-stream' };
+        const body = await shrinkImage(f);
+        sizes[i] = body.size;
+        if (body.size > MAX_FILE_BYTES) return { ...entry, error: 'File larger than 20 MB' };
+        const path = `questionnaireUploads/${submissionId}/${i}_${f.name.replace(/[^\w.\-]+/g, '_')}`;
+
+        return new Promise(resolve => {
+          const task = st.uploadBytesResumable(st.ref(storage, path), body, { contentType: entry.type });
+          let stall;
+          const armStall = () => {
+            clearTimeout(stall);
+            stall = setTimeout(() => task.cancel(), UPLOAD_STALL_MS);
+          };
+          armStall();
+          task.on('state_changed',
+            snap => { sent[i] = snap.bytesTransferred; report(); armStall(); },
+            err => {
+              clearTimeout(stall);
+              resolve({ ...entry, error: err.code === 'storage/canceled' ? 'Upload timed out' : (err.code || String(err)) });
+            },
+            () => {
+              clearTimeout(stall);
+              sent[i] = body.size; report();
+              resolve({ ...entry, size: body.size, path });
+            });
+        });
+      }));
     }
 
     const submitBtn = form.querySelector('button[type="submit"]');
@@ -715,8 +778,9 @@
         const fb = await loadFirebase();
         const docRef = fb.fs.doc(fb.fs.collection(fb.db, SUBMISSIONS_COLLECTION));
         if (fileInput.files.length) submitBtn.textContent = 'Uploading files…';
-        const files = await uploadFiles(fb, docRef.id);
-        await fb.fs.setDoc(docRef, {
+        const files = await uploadFiles(fb, docRef.id, pct => { submitBtn.textContent = `Uploading files… ${pct}%`; });
+        submitBtn.textContent = 'Saving answers…';
+        const saved = fb.fs.setDoc(docRef, {
           companyName: data['Company Name'],
           answers: data,
           contacts,
@@ -725,7 +789,8 @@
           submittedAt: fb.fs.serverTimestamp(),
           userAgent: navigator.userAgent.slice(0, 300)
         });
-        showThanks();
+        await Promise.race([saved, new Promise((_, reject) => setTimeout(() => reject(new Error('Save timed out')), SAVE_TIMEOUT_MS))]);
+        showThanks(files.filter(f => f.error).map(f => f.name));
       } catch (e) {
         console.error('Questionnaire submit failed', e);
         toast("Couldn't send. Downloading a copy for you to email us instead.");

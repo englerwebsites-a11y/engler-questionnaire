@@ -5,7 +5,7 @@
 //
 // Anyone can create a submission. Only the admin account (signed in on
 // responses.html) can read or delete them, and nobody can edit one.
-// Replace PASTE_ADMIN_UID_HERE with the admin user's UID from
+// isAdmin() below holds the admin user's UID from
 // Authentication > Users.
 
 rules_version = '2';
@@ -13,7 +13,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     function isAdmin() {
-      return request.auth != null && request.auth.uid == 'PASTE_ADMIN_UID_HERE';
+      return request.auth != null && request.auth.uid == 'TyahIAOe0ZgcOZC1d8xOf0j0DrT2';
     }
 
     match /questionnaireSubmissions/{submissionId} {
