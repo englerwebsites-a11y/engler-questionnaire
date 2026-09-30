@@ -696,8 +696,8 @@
       const app = appMod.getApps()[0] || appMod.initializeApp(FIREBASE_CONFIG);
       const storage = stMod.getStorage(app);
       // The SDK otherwise retries a failing upload for up to 10 minutes.
-      stMod.setMaxUploadRetryTime(storage, UPLOAD_STALL_MS);
-      stMod.setMaxOperationRetryTime(storage, UPLOAD_STALL_MS);
+      storage.maxUploadRetryTime = UPLOAD_STALL_MS;
+      storage.maxOperationRetryTime = UPLOAD_STALL_MS;
       firebaseMods = { fs: fsMod, st: stMod, db: fsMod.getFirestore(app), storage };
       return firebaseMods;
     }
