@@ -1,9 +1,7 @@
 // Firestore rules for index.html.
 //
-// Paste the `match /questionnaireSubmissions/...` block below into your existing
-// rules (Firebase console > Firestore Database > Rules), inside
-// `match /databases/{database}/documents { ... }`, next to the syncGroups rule
-// the todo app already uses. Don't replace your whole rules file with this.
+// Paste this whole file into Firebase console > Firestore Database > Rules for
+// the engler-questionnaire project, replacing what's there, then Publish.
 //
 // Anyone can create a submission, but nobody can read, edit or delete one from
 // the browser. You view submissions in the Firebase console.

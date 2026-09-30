@@ -1,7 +1,7 @@
 // Cloud Storage rules for index.html logo uploads.
 //
-// Paste the `match /questionnaireUploads/...` block into your existing rules
-// (Firebase console > Storage > Rules), inside `match /b/{bucket}/o { ... }`.
+// Paste this whole file into Firebase console > Storage > Rules for the
+// engler-questionnaire project, replacing what's there, then Publish.
 //
 // Clients can upload design files up to 20 MB but cannot list, read, overwrite
 // or delete anything. You download files from the Firebase console.
