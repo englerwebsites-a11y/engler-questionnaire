@@ -192,6 +192,7 @@
     .file .fname { padding: 8px 10px; font-family: var(--font-mono); font-size: 0.72rem; border-top: 1px solid var(--silver-line); overflow-wrap: anywhere; }
     .file .fname a { color: var(--accent); }
     .file.failed .thumb { background: #FDF3F3; color: var(--danger); text-align: center; padding: 10px; white-space: pre-line; }
+    .file.in-drive .thumb { background: var(--accent-soft); color: var(--accent); text-align: center; padding: 10px; font-weight: 500; }
 
     .toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(120px);
@@ -398,13 +399,25 @@
     // Files live in Google Drive (see google-drive/Code.gs). Image previews use
     // Drive's thumbnail endpoint, which works because the script shares each
     // file with "anyone with the link".
-    function renderFiles(files) {
+    // Errors that mean the file was never sent, so it can't be in Drive.
+    const NOT_SENT = /^File (larger than|uploads are not set up)/;
+
+    function renderFiles(files, submissionId) {
       const grid = el('div', { class: 'files' });
       (files || []).forEach(f => {
-        if (!f.driveId) {
+        if (!f.driveId && NOT_SENT.test(f.error || '')) {
           grid.append(el('div', { class: 'file failed' },
-            el('div', { class: 'thumb', text: 'Upload failed' + (f.error ? `\n${f.error}` : '') }),
+            el('div', { class: 'thumb', text: `Not received\n${f.error}` }),
             el('div', { class: 'fname', text: f.name })));
+          return;
+        }
+        if (!f.driveId) {
+          // The form didn't get a reply for this file, but Drive may still have
+          // saved it; its folder name includes the submission ID.
+          const search = `https://drive.google.com/drive/search?q=${encodeURIComponent(submissionId)}`;
+          grid.append(el('div', { class: 'file in-drive', title: f.error || '' },
+            el('div', { class: 'thumb', text: 'Uploaded to Drive' }),
+            el('div', { class: 'fname' }, el('a', { href: search, target: '_blank', rel: 'noopener noreferrer', text: `${f.name} · Find in Drive` }))));
           return;
         }
         const id = encodeURIComponent(f.driveId);
@@ -448,7 +461,7 @@
           box.append(answerBox(val));
         }
       });
-      if (f.files) box.append(el('div', { class: 'sub-label', text: 'Attached files' }), renderFiles(sub.files));
+      if (f.files) box.append(el('div', { class: 'sub-label', text: 'Attached files' }), renderFiles(sub.files, sub.id));
       return box;
     }
 
@@ -458,7 +471,7 @@
       Object.entries(sub.answers || {}).forEach(([k, v]) =>
         card.append(el('div', { class: 'field' }, el('div', { class: 'q', text: k }), answerBox(v))));
       card.append(el('div', { class: 'field' }, el('div', { class: 'q', text: 'Primary contacts' }), renderContacts(sub.contacts)));
-      card.append(el('div', { class: 'field' }, el('div', { class: 'q', text: 'Attached files' }), renderFiles(sub.files)));
+      card.append(el('div', { class: 'field' }, el('div', { class: 'q', text: 'Attached files' }), renderFiles(sub.files, sub.id)));
       return [card];
     }
 
