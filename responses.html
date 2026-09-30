@@ -265,8 +265,6 @@
       from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
     import { getFirestore, collection, query, orderBy, onSnapshot, doc, deleteDoc }
       from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-    import { getStorage, ref, getDownloadURL, deleteObject }
-      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
     // Must match the config in index.html.
     const FIREBASE_CONFIG = {
@@ -282,7 +280,6 @@
     const app = initializeApp(FIREBASE_CONFIG);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const storage = getStorage(app);
     setPersistence(auth, browserSessionPersistence);
 
     const $ = id => document.getElementById(id);
@@ -398,30 +395,30 @@
       return wrap;
     }
 
+    // Files live in Google Drive (see google-drive/Code.gs). Image previews use
+    // Drive's thumbnail endpoint, which works because the script shares each
+    // file with "anyone with the link".
     function renderFiles(files) {
       const grid = el('div', { class: 'files' });
       (files || []).forEach(f => {
-        if (!f.path) {
+        if (!f.driveId) {
           grid.append(el('div', { class: 'file failed' },
             el('div', { class: 'thumb', text: 'Upload failed' + (f.error ? `\n${f.error}` : '') }),
             el('div', { class: 'fname', text: f.name })));
           return;
         }
-        const thumb = el('div', { class: 'thumb', text: 'Loading…' });
-        const fname = el('div', { class: 'fname', text: f.name });
-        grid.append(el('div', { class: 'file' }, thumb, fname));
-        getDownloadURL(ref(storage, f.path)).then(url => {
-          const link = el('a', { href: url, target: '_blank', rel: 'noopener noreferrer', text: f.name });
-          fname.replaceChildren(link);
-          thumb.textContent = '';
-          if ((f.type || '').startsWith('image/')) {
-            const img = el('img', { src: url, alt: f.name, loading: 'lazy' });
-            img.onerror = () => { thumb.textContent = 'Preview unavailable'; };
-            thumb.append(el('a', { href: url, target: '_blank', rel: 'noopener noreferrer' }, img));
-          } else {
-            thumb.textContent = (f.name.split('.').pop() || 'file').toUpperCase();
-          }
-        }).catch(() => { thumb.textContent = 'Could not load file'; });
+        const id = encodeURIComponent(f.driveId);
+        const url = `https://drive.google.com/file/d/${id}/view`;
+        const thumb = el('div', { class: 'thumb' });
+        if ((f.type || '').startsWith('image/')) {
+          const img = el('img', { src: `https://drive.google.com/thumbnail?id=${id}&sz=w1000`, alt: f.name, loading: 'lazy' });
+          img.onerror = () => thumb.replaceChildren('Open in Drive to view');
+          thumb.append(el('a', { href: url, target: '_blank', rel: 'noopener noreferrer' }, img));
+        } else {
+          thumb.textContent = (f.name.split('.').pop() || 'file').toUpperCase();
+        }
+        grid.append(el('div', { class: 'file' }, thumb,
+          el('div', { class: 'fname' }, el('a', { href: url, target: '_blank', rel: 'noopener noreferrer', text: f.name }))));
       });
       if (!grid.children.length) return el('div', { class: 'answer none', text: 'No files attached' });
       return grid;
@@ -514,11 +511,11 @@
     }
 
     async function removeSubmission(sub, btn) {
-      if (!confirm(`Delete the submission from "${sub.companyName}"? This also deletes its uploaded files and can't be undone.`)) return;
+      const hasFiles = (sub.files || []).some(f => f.driveId);
+      if (!confirm(`Delete the submission from "${sub.companyName}"? This can't be undone.` +
+        (hasFiles ? '\n\nIts uploaded files stay in your Google Drive folder; delete those there if you no longer need them.' : ''))) return;
       btn.disabled = true;
       try {
-        await Promise.all((sub.files || []).filter(f => f.path)
-          .map(f => deleteObject(ref(storage, f.path)).catch(() => {})));
         await deleteDoc(doc(db, SUBMISSIONS_COLLECTION, sub.id));
         selectedId = null;
         toast('Submission deleted.');

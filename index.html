@@ -484,9 +484,9 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    // Submissions go to Firestore (collection below) and attached files to
-    // Cloud Storage under questionnaireUploads/<submissionId>/. Security rules
-    // for both live in firebase/ and must be added in the Firebase console.
+    // Submissions go to Firestore (collection below); its security rules live
+    // in firebase/ and must be pasted into the Firebase console. Attached files
+    // go to Google Drive through the Apps Script in google-drive/Code.gs.
     const FIREBASE_CONFIG = {
       apiKey: 'AIzaSyCrmEk6X74MWQH6olX2N5Q5Zd7NJGY_SDk',
       authDomain: 'engler-questionnaire.firebaseapp.com',
@@ -496,9 +496,12 @@
       appId: '1:477147439593:web:43ceb566517778c8fdeb78'
     };
     const SUBMISSIONS_COLLECTION = 'questionnaireSubmissions';
+    // The Apps Script web app URL (ends in /exec) from Deploy > Manage deployments.
+    const DRIVE_UPLOAD_URL = '';
     const FIREBASE_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
     const MAX_FILE_BYTES = 20 * 1024 * 1024;
     const UPLOAD_STALL_MS = 30 * 1000;       // give up on a file after 30 s with no progress
+    const UPLOAD_TIMEOUT_MS = 3 * 60 * 1000; // hard limit per file, including Drive's save time
     const SAVE_TIMEOUT_MS = 20 * 1000;
     const RESIZE_OVER_BYTES = 4 * 1024 * 1024;
     const MAX_IMAGE_EDGE = 3000;             // px, longest side after resizing
@@ -688,17 +691,12 @@
     let firebaseMods = null;
     async function loadFirebase() {
       if (firebaseMods) return firebaseMods;
-      const [appMod, fsMod, stMod] = await Promise.all([
+      const [appMod, fsMod] = await Promise.all([
         import(FIREBASE_SDK + 'firebase-app.js'),
-        import(FIREBASE_SDK + 'firebase-firestore.js'),
-        import(FIREBASE_SDK + 'firebase-storage.js')
+        import(FIREBASE_SDK + 'firebase-firestore.js')
       ]);
       const app = appMod.getApps()[0] || appMod.initializeApp(FIREBASE_CONFIG);
-      const storage = stMod.getStorage(app);
-      // The SDK otherwise retries a failing upload for up to 10 minutes.
-      storage.maxUploadRetryTime = UPLOAD_STALL_MS;
-      storage.maxOperationRetryTime = UPLOAD_STALL_MS;
-      firebaseMods = { fs: fsMod, st: stMod, db: fsMod.getFirestore(app), storage };
+      firebaseMods = { fs: fsMod, db: fsMod.getFirestore(app) };
       return firebaseMods;
     }
 
@@ -721,45 +719,72 @@
       }
     }
 
+    function toBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    // Sends one file to the Google Apps Script in google-drive/Code.gs, which
+    // saves it to Google Drive. Uses XHR (not fetch) to get upload progress.
+    // The text/plain body keeps it a "simple" request, so no CORS preflight.
+    function postToDrive(payload, onProgress) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        let stall;
+        const armStall = () => {
+          clearTimeout(stall);
+          stall = setTimeout(() => xhr.abort(), UPLOAD_STALL_MS);
+        };
+        xhr.open('POST', DRIVE_UPLOAD_URL);
+        xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
+        xhr.timeout = UPLOAD_TIMEOUT_MS;
+        xhr.upload.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded / e.total); armStall(); };
+        xhr.upload.onload = () => clearTimeout(stall);  // Drive is saving it now; UPLOAD_TIMEOUT_MS covers that
+        xhr.onload = () => {
+          clearTimeout(stall);
+          try {
+            const res = JSON.parse(xhr.responseText);
+            res.ok ? resolve(res) : reject(new Error(res.error || 'Upload rejected'));
+          } catch (e) {
+            reject(new Error('Unexpected response from Drive'));
+          }
+        };
+        xhr.onerror = () => { clearTimeout(stall); reject(new Error('Network error')); };
+        xhr.onabort = () => reject(new Error('Upload timed out'));
+        xhr.ontimeout = () => reject(new Error('Upload timed out'));
+        armStall();
+        xhr.send(JSON.stringify(payload));
+      });
+    }
+
     // Uploads all attachments in parallel, reporting combined progress. A file
-    // that fails or stops making progress is recorded as failed rather than
-    // blocking the submission.
-    async function uploadFiles({ st, storage }, submissionId, onProgress) {
+    // that fails is recorded as failed rather than blocking the submission.
+    async function uploadFiles(submissionId, company, onProgress) {
       const files = [...fileInput.files];
-      const sent = new Array(files.length).fill(0);
-      const sizes = new Array(files.length).fill(0);
-      const report = () => {
-        const total = sizes.reduce((a, b) => a + b, 0);
-        if (total) onProgress(Math.round(sent.reduce((a, b) => a + b, 0) / total * 100));
-      };
+      const done = new Array(files.length).fill(0);
+      const report = () => onProgress(Math.round(done.reduce((a, b) => a + b, 0) / files.length * 100));
 
       return Promise.all(files.map(async (f, i) => {
         const entry = { name: f.name, size: f.size, type: f.type || 'application/octet-stream' };
-        const body = await shrinkImage(f);
-        sizes[i] = body.size;
-        if (body.size > MAX_FILE_BYTES) return { ...entry, error: 'File larger than 20 MB' };
-        const path = `questionnaireUploads/${submissionId}/${i}_${f.name.replace(/[^\w.\-]+/g, '_')}`;
-
-        return new Promise(resolve => {
-          const task = st.uploadBytesResumable(st.ref(storage, path), body, { contentType: entry.type });
-          let stall;
-          const armStall = () => {
-            clearTimeout(stall);
-            stall = setTimeout(() => task.cancel(), UPLOAD_STALL_MS);
-          };
-          armStall();
-          task.on('state_changed',
-            snap => { sent[i] = snap.bytesTransferred; report(); armStall(); },
-            err => {
-              clearTimeout(stall);
-              resolve({ ...entry, error: err.code === 'storage/canceled' ? 'Upload timed out' : (err.code || String(err)) });
-            },
-            () => {
-              clearTimeout(stall);
-              sent[i] = body.size; report();
-              resolve({ ...entry, size: body.size, path });
-            });
-        });
+        if (!DRIVE_UPLOAD_URL) return { ...entry, error: 'File uploads are not set up yet' };
+        try {
+          const body = await shrinkImage(f);
+          if (body.size > MAX_FILE_BYTES) return { ...entry, error: 'File larger than 20 MB' };
+          const res = await postToDrive({
+            submissionId, company,
+            name: `${i + 1}_${f.name}`,
+            type: entry.type,
+            data: await toBase64(body)
+          }, frac => { done[i] = frac * 0.95; report(); });
+          done[i] = 1; report();
+          return { ...entry, size: body.size, driveId: res.id, url: res.url };
+        } catch (e) {
+          return { ...entry, error: e.message || String(e) };
+        }
       }));
     }
 
@@ -778,7 +803,7 @@
         const fb = await loadFirebase();
         const docRef = fb.fs.doc(fb.fs.collection(fb.db, SUBMISSIONS_COLLECTION));
         if (fileInput.files.length) submitBtn.textContent = 'Uploading files…';
-        const files = await uploadFiles(fb, docRef.id, pct => { submitBtn.textContent = `Uploading files… ${pct}%`; });
+        const files = await uploadFiles(docRef.id, data['Company Name'], pct => { submitBtn.textContent = `Uploading files… ${pct}%`; });
         submitBtn.textContent = 'Saving answers…';
         const saved = fb.fs.setDoc(docRef, {
           companyName: data['Company Name'],
