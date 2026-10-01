@@ -538,12 +538,38 @@
       if (window.innerWidth <= 900) head.scrollIntoView({ behavior: 'smooth' });
     }
 
-    // Names the PDF after the company (browsers use the page title).
+    // Prints from a hidden iframe holding a static copy of the submission.
+    // Safari holds window.print() until the page finishes loading, and this
+    // page never does: Firestore keeps a live connection open for onSnapshot.
+    // The iframe has no such connection, so it prints straight away.
     function printSubmission(sub) {
-      const title = document.title;
-      document.title = `Questionnaire – ${sub.companyName || 'Client'}`;
-      window.addEventListener('afterprint', () => { document.title = title; }, { once: true });
-      window.print();
+      const title = `Questionnaire – ${sub.companyName || 'Client'}`;
+      const content = $('detail').cloneNode(true);
+      content.querySelectorAll('.detail-actions, img').forEach(n => n.remove());
+      const styles = [...document.querySelectorAll('style, link[rel="stylesheet"]')].map(n => n.outerHTML).join('\n');
+
+      document.querySelectorAll('iframe.print-frame').forEach(f => f.remove());
+      const frame = document.createElement('iframe');
+      frame.className = 'print-frame';
+      frame.setAttribute('aria-hidden', 'true');
+      frame.style.cssText = 'position:fixed;left:-10000px;top:0;width:900px;height:1200px;border:0;';
+      frame.srcdoc = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title></title>${styles}</head><body>${content.outerHTML}</body></html>`;
+
+      const pageTitle = document.title;
+      const restore = () => {
+        document.title = pageTitle;
+        setTimeout(() => frame.remove(), 1000);
+      };
+      frame.onload = () => {
+        const w = frame.contentWindow;
+        // Browsers name the PDF after the page title.
+        w.document.title = title;
+        document.title = title;
+        w.addEventListener('afterprint', restore, { once: true });
+        w.focus();
+        w.print();
+      };
+      document.body.append(frame);
     }
 
     async function removeSubmission(sub, btn) {
