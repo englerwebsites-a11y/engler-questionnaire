@@ -848,7 +848,7 @@
         showThanks(files.filter(f => f.error).map(f => f.name));
       } catch (e) {
         console.error('Questionnaire submit failed', e);
-        toast("Couldn't send. Downloading a copy for you to email us instead.");
+        toast("Couldn't send. Downloading a copy for you to email to englerwebsites@gmail.com instead.");
         download(toText({ ...data, 'Primary Contacts': contacts }), `questionnaire_${company}.txt`);
       } finally {
         submitBtn.disabled = false;
