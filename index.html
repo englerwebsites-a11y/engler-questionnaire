@@ -142,6 +142,7 @@
       padding: 12px 16px; border: 1px solid var(--silver-line); border-radius: 10px; background: var(--bg);
       font-size: 0.92rem; font-weight: 500; transition: border-color 0.15s, background 0.15s;
     }
+    .email-addr { color: var(--accent); font-weight: 600; overflow-wrap: anywhere; }
     .toggle-text { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
     .badge {
       font-style: normal; font-family: var(--font-mono); font-size: 0.68rem; font-weight: 500;
@@ -358,7 +359,7 @@
         <div class="field email-files">
           <label class="toggle-row">
             <div class="toggle-text">
-              <span>I plan on submitting files through email</span>
+              <span>I plan on submitting files through email to <strong class="email-addr">englerwebsites@gmail.com</strong></span>
               <em class="badge">Recommended</em>
             </div>
             <input type="checkbox" class="switch" id="emailFiles" name="Files Via Email" value="Yes" role="switch" />
@@ -507,14 +508,14 @@
     <div class="eyebrow">Received</div>
     <h2>Thank you!</h2>
     <p>We've got your answers and will be in touch shortly to schedule a kickoff call.</p>
-    <p class="thanks-email" id="thanksEmail" hidden>We'll keep an eye out for your email with your files.</p>
+    <p class="thanks-email" id="thanksEmail" hidden>We'll keep an eye out for your email with your files at englerwebsites@gmail.com.</p>
     <p class="thanks-files" id="thanksFiles" hidden></p>
   </div>
 
   <footer>
     <div class="footer-inner">
       <span>ENGLER — WEBSITES, DRAFTED &amp; BUILT</span>
-      <span>© 2026, built by three friends</span>
+      <span>© 2026</span>
     </div>
   </footer>
 
@@ -714,7 +715,7 @@
       document.getElementById('thanksEmail').hidden = !document.getElementById('emailFiles').checked;
       if (failedFiles.length) {
         const note = document.getElementById('thanksFiles');
-        note.textContent = `Your answers were saved, but we couldn't receive ${failedFiles.join(', ')}. Please email ${failedFiles.length > 1 ? 'those files' : 'that file'} to your Engler contact.`;
+        note.textContent = `Your answers were saved, but we couldn't receive ${failedFiles.join(', ')}. Please email ${failedFiles.length > 1 ? 'those files' : 'that file'} to englerwebsites@gmail.com.`;
         note.hidden = false;
       }
       form.parentElement.style.display = 'none';
