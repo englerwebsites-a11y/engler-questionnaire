@@ -223,9 +223,13 @@
       section.card { box-shadow: none; padding: 20px 22px; margin-bottom: 16px; break-inside: auto; }
       .card-head { break-after: avoid; }
       .grid-2 { display: block; }
-      .field, .contact, .file, .notice, .agree { break-inside: avoid; }
+      .field, .contact, .notice, .agree { break-inside: avoid; }
+      /* Attachments print as a list of file names, without the images. */
       .files { display: block; }
-      .file { display: inline-flex; width: 30%; margin: 0 2% 12px 0; vertical-align: top; }
+      .file { display: block; border: none; border-radius: 0; }
+      .file .thumb { display: none; }
+      .file .fname { border: none; padding: 2px 0; font-size: 0.8rem; }
+      .file .fname::before { content: '📎 '; }
       .answer { background: #FFF; }
       a { text-decoration: none; }
     }
@@ -435,7 +439,7 @@
         const url = `https://drive.google.com/file/d/${id}/view`;
         const thumb = el('div', { class: 'thumb' });
         if ((f.type || '').startsWith('image/')) {
-          const img = el('img', { src: `https://drive.google.com/thumbnail?id=${id}&sz=w1000`, alt: f.name });
+          const img = el('img', { src: `https://drive.google.com/thumbnail?id=${id}&sz=w1000`, alt: f.name, loading: 'lazy' });
           img.onerror = () => thumb.replaceChildren('Open in Drive to view');
           thumb.append(el('a', { href: url, target: '_blank', rel: 'noopener noreferrer' }, img));
         } else {
@@ -534,17 +538,8 @@
       if (window.innerWidth <= 900) head.scrollIntoView({ behavior: 'smooth' });
     }
 
-    // Waits briefly for image previews so they aren't blank on paper, and
-    // names the PDF after the company (browsers use the page title).
-    async function printSubmission(sub) {
-      const pending = [...$('detail').querySelectorAll('img')].filter(img => !img.complete);
-      if (pending.length) {
-        toast('Loading images for printing…');
-        await Promise.race([
-          Promise.all(pending.map(img => new Promise(r => { img.onload = img.onerror = r; }))),
-          new Promise(r => setTimeout(r, 5000))
-        ]);
-      }
+    // Names the PDF after the company (browsers use the page title).
+    function printSubmission(sub) {
       const title = document.title;
       document.title = `Questionnaire – ${sub.companyName || 'Client'}`;
       window.addEventListener('afterprint', () => { document.title = title; }, { once: true });
