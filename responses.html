@@ -213,10 +213,21 @@
       .grid-2, .contact dl { grid-template-columns: 1fr; }
     }
     @media print {
-      header, .list-panel, .detail-actions, .toast { display: none !important; }
-      .dash { display: block; padding: 0; }
-      section.card { box-shadow: none; break-inside: avoid; margin-bottom: 16px; }
-      body { background: #FFF; }
+      @page { margin: 14mm; }
+      header, .list-panel, .detail-actions, .toast, .login-wrap { display: none !important; }
+      body { background: #FFF; min-height: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      /* Flex and grid containers don't split across pages reliably, so print
+         everything as plain blocks and only keep single questions together. */
+      .dash, .detail { display: block; padding: 0; max-width: none; }
+      .detail-head { display: block; margin-bottom: 16px; }
+      section.card { box-shadow: none; padding: 20px 22px; margin-bottom: 16px; break-inside: auto; }
+      .card-head { break-after: avoid; }
+      .grid-2 { display: block; }
+      .field, .contact, .file, .notice, .agree { break-inside: avoid; }
+      .files { display: block; }
+      .file { display: inline-flex; width: 30%; margin: 0 2% 12px 0; vertical-align: top; }
+      .answer { background: #FFF; }
+      a { text-decoration: none; }
     }
   </style>
 </head>
@@ -424,7 +435,7 @@
         const url = `https://drive.google.com/file/d/${id}/view`;
         const thumb = el('div', { class: 'thumb' });
         if ((f.type || '').startsWith('image/')) {
-          const img = el('img', { src: `https://drive.google.com/thumbnail?id=${id}&sz=w1000`, alt: f.name, loading: 'lazy' });
+          const img = el('img', { src: `https://drive.google.com/thumbnail?id=${id}&sz=w1000`, alt: f.name });
           img.onerror = () => thumb.replaceChildren('Open in Drive to view');
           thumb.append(el('a', { href: url, target: '_blank', rel: 'noopener noreferrer' }, img));
         } else {
@@ -490,7 +501,7 @@
       if (selectedId !== id) return;
 
       const printBtn = el('button', { class: 'btn btn-ghost btn-small', type: 'button', text: 'Print / PDF' });
-      printBtn.onclick = () => window.print();
+      printBtn.onclick = () => printSubmission(sub);
       const txtBtn = el('button', { class: 'btn btn-ghost btn-small', type: 'button', text: 'Download .txt' });
       txtBtn.onclick = () => {
         const a = el('a', { href: URL.createObjectURL(new Blob([sub.summary || ''], { type: 'text/plain' })),
@@ -521,6 +532,23 @@
 
       detail.replaceChildren(head, ...cards);
       if (window.innerWidth <= 900) head.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Waits briefly for image previews so they aren't blank on paper, and
+    // names the PDF after the company (browsers use the page title).
+    async function printSubmission(sub) {
+      const pending = [...$('detail').querySelectorAll('img')].filter(img => !img.complete);
+      if (pending.length) {
+        toast('Loading images for printing…');
+        await Promise.race([
+          Promise.all(pending.map(img => new Promise(r => { img.onload = img.onerror = r; }))),
+          new Promise(r => setTimeout(r, 5000))
+        ]);
+      }
+      const title = document.title;
+      document.title = `Questionnaire – ${sub.companyName || 'Client'}`;
+      window.addEventListener('afterprint', () => { document.title = title; }, { once: true });
+      window.print();
     }
 
     async function removeSubmission(sub, btn) {
