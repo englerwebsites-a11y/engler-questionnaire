@@ -136,6 +136,26 @@
     .agree span { font-weight: 500; }
     .invalid .agree { border-color: var(--danger); }
 
+    .email-files { margin-top: -10px; }
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer;
+      padding: 12px 16px; border: 1px solid var(--silver-line); border-radius: 10px; background: var(--bg);
+      font-size: 0.92rem; font-weight: 500; transition: border-color 0.15s, background 0.15s;
+    }
+    .toggle-row:has(.switch:checked) { border-color: var(--accent); background: var(--accent-soft); }
+    .switch {
+      appearance: none; -webkit-appearance: none; flex-shrink: 0; cursor: pointer;
+      width: 42px; height: 24px; border-radius: 999px; background: var(--silver-line);
+      position: relative; transition: background 0.2s;
+    }
+    .switch::before {
+      content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%;
+      background: #FFF; box-shadow: 0 1px 3px rgba(13,23,41,0.25); transition: transform 0.2s;
+    }
+    .switch:checked { background: var(--accent); }
+    .switch:checked::before { transform: translateX(18px); }
+    .switch:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+
     .contact {
       border: 1px solid var(--silver-line); border-radius: 12px; padding: 18px 18px 4px;
       margin-bottom: 12px; position: relative; background: #FCFDFE;
@@ -190,6 +210,7 @@
     .thanks { display: none; text-align: center; padding: 60px 32px; }
     .thanks h2 { font-size: 1.8rem; margin-bottom: 10px; }
     .thanks p { color: var(--ink-soft); }
+    .thanks .thanks-email { margin-top: 14px; }
     .thanks .thanks-files {
       max-width: 520px; margin: 20px auto 0; padding: 14px 18px; border-radius: 10px;
       background: #FDF3F3; color: var(--danger); font-size: 0.9rem;
@@ -326,6 +347,12 @@
             <input type="file" id="logoFiles" multiple accept=".svg,.ai,.eps,.pdf,.png,.jpg,.jpeg" />
             <strong>Click to attach logo files</strong> or drag them here
             <div class="file-list" id="fileList"></div>
+          </label>
+        </div>
+        <div class="field email-files">
+          <label class="toggle-row">
+            <span>I plan on submitting files through email</span>
+            <input type="checkbox" class="switch" id="emailFiles" name="Files Via Email" value="Yes" role="switch" />
           </label>
         </div>
         <div class="field">
@@ -471,6 +498,7 @@
     <div class="eyebrow">Received</div>
     <h2>Thank you!</h2>
     <p>We've got your answers and will be in touch shortly to schedule a kickoff call.</p>
+    <p class="thanks-email" id="thanksEmail" hidden>We'll keep an eye out for your email with your files.</p>
     <p class="thanks-files" id="thanksFiles" hidden></p>
   </div>
 
@@ -645,7 +673,7 @@
       sections.forEach(s => {
         lines.push('== ' + s.querySelector('h2').textContent + ' ==');
         s.querySelectorAll('.field').forEach(f => {
-          const label = f.querySelector('label.q, .agree span');
+          const label = f.querySelector('label.q, .agree span, .toggle-row span');
           if (!label) return;
           const names = [...new Set([...f.querySelectorAll('[name]')].map(el => el.name))];
           names.forEach(n => {
@@ -674,6 +702,7 @@
     }
 
     function showThanks(failedFiles = []) {
+      document.getElementById('thanksEmail').hidden = !document.getElementById('emailFiles').checked;
       if (failedFiles.length) {
         const note = document.getElementById('thanksFiles');
         note.textContent = `Your answers were saved, but we couldn't receive ${failedFiles.join(', ')}. Please email ${failedFiles.length > 1 ? 'those files' : 'that file'} to your Engler contact.`;

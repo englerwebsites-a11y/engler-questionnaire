@@ -328,7 +328,7 @@
     const clean = s => s.replace(/\*/g, '').replace(/\s+/g, ' ').trim();
 
     function parseField(field) {
-      const label = field.querySelector('label.q, .agree span');
+      const label = field.querySelector('label.q, .agree span, .toggle-row span');
       const hint = field.querySelector(':scope > .hint');
       const inputs = [];
       const seen = new Set();
@@ -454,7 +454,7 @@
 
     function renderField(f, sub) {
       const box = el('div', { class: 'field' });
-      if (f.inputs.some(i => i.kind === 'check')) {
+      if (f.inputs.length && f.inputs.every(i => i.kind === 'check')) {
         const on = f.inputs.every(i => sub.answers?.[i.name]);
         box.append(el('div', { class: 'agree' }, el('span', { class: 'tick' + (on ? ' on' : ''), text: on ? '✓' : '' }), f.label));
         return box;
