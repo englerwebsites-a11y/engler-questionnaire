@@ -463,8 +463,11 @@
           <textarea id="awards" name="Certifications & Awards" style="min-height:70px"></textarea>
         </div>
         <div class="field">
-          <label class="q" for="video">Do you have video footage or a hero video to embed on the site?</label>
-          <textarea id="video" name="Video Assets" style="min-height:70px"></textarea>
+          <label class="q">Do you have video footage or a hero video to embed on the site?</label>
+          <div class="chips" role="radiogroup">
+            <label class="chip"><input type="radio" name="Video Assets" value="Yes"><span>Yes</span></label>
+            <label class="chip"><input type="radio" name="Video Assets" value="No"><span>No</span></label>
+          </div>
         </div>
         <div class="field">
           <label class="q" for="analytics">Do you currently track analytics data (e.g. monthly site visitors or main traffic sources)?</label>
@@ -605,7 +608,9 @@
     function collect() {
       const data = {};
       form.querySelectorAll('input[name], textarea[name], select[name]').forEach(el => {
-        if (el.type === 'checkbox') {
+        if (el.type === 'radio') {
+          if (el.checked) data[el.name] = el.value;
+        } else if (el.type === 'checkbox') {
           if (!el.checked) return;
           data[el.name] = data[el.name] ? data[el.name] + ', ' + el.value : el.value;
         } else if (el.type !== 'file') {
@@ -628,7 +633,8 @@
       form.querySelectorAll('input[name], textarea[name], select[name]').forEach(el => {
         const v = saved[el.name];
         if (v == null) return;
-        if (el.type === 'checkbox') el.checked = String(v).split(', ').includes(el.value);
+        if (el.type === 'radio') el.checked = v === el.value;
+        else if (el.type === 'checkbox') el.checked = String(v).split(', ').includes(el.value);
         else if (el.type !== 'file') el.value = v;
       });
       const cs = Array.isArray(saved['Primary Contacts']) && saved['Primary Contacts'].length ? saved['Primary Contacts'] : [{}];
@@ -647,7 +653,7 @@
 
     function fieldAnswered(field) {
       const inputs = field.querySelectorAll('input:not([type=file]), textarea, select');
-      return [...inputs].some(i => i.type === 'checkbox' ? i.checked : i.value.trim() !== '');
+      return [...inputs].some(i => i.type === 'checkbox' || i.type === 'radio' ? i.checked : i.value.trim() !== '');
     }
     function updateProgress() {
       let total = 0, done = 0;

@@ -470,6 +470,8 @@
           const chips = el('div', { class: 'chips' });
           inp.options.forEach(o => chips.append(el('span', { class: 'chip' + (picked.includes(o) ? ' on' : ''), text: o })));
           box.append(chips);
+          // Answers given before this question had fixed options (free text).
+          if (picked.some(p => !inp.options.includes(p))) box.append(answerBox(val));
         } else if (idx > 0) {
           if (val) box.append(el('div', { class: 'sub-label', text: inp.sub }), answerBox(val));
         } else {
