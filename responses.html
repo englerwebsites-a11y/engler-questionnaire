@@ -523,7 +523,7 @@
         pages = (a[PAGE_LIST_KEY] || '').split(/[,;\n•]+/).map(x => x.replace(/^[\s\-*\d.)]+/, '').trim()).filter(Boolean).length;
         pagesSource = pages ? 'counted from listed pages' : 'no pages given';
       }
-      const features = (a[FEATURES_KEY] || '').split(', ').filter(Boolean);
+      const features = (a[FEATURES_KEY] || '').split(', ').filter(f => f && f !== 'None needed');
       const pagesCost = pages * PRICE_PER_PAGE;
       const featuresCost = features.length * PRICE_PER_FEATURE;
       return { pages, pagesSource, features, other: (a[FEATURES_OTHER_KEY] || '').trim(), pagesCost, featuresCost, total: pagesCost + featuresCost };

@@ -264,7 +264,7 @@
     <div class="hero-inner">
       <div class="eyebrow">New project intake</div>
       <h1>Website Project Questionnaire</h1>
-      <p>Tell us about your business, your goals, and what you need from your new site. Answer what you can. You can leave a question blank if you're unsure, and we'll talk it through together.</p>
+      <p>Tell us about your business, your goals, and what you need from your new site. Please answer every question. If one doesn't apply to you, write “N/A”, and if you're unsure, tell us and we'll talk it through together.</p>
       <div class="meta">≈ 15–20 minutes · Your answers save automatically in this browser</div>
     </div>
   </div>
@@ -283,23 +283,23 @@
           <input type="text" id="companyName" name="Company Name" autocomplete="organization" />
           <span class="error-msg">Please enter your company name.</span>
         </div>
-        <div class="field">
-          <label class="q" for="address">Physical address</label>
+        <div class="field required">
+          <label class="q" for="address">Physical address<span class="req">*</span></label>
           <textarea id="address" name="Physical Address" autocomplete="street-address" style="min-height:70px"></textarea>
         </div>
         <div class="grid-2">
-          <div class="field">
-            <label class="q" for="phone">Phone number</label>
+          <div class="field required">
+            <label class="q" for="phone">Phone number<span class="req">*</span></label>
             <input type="tel" id="phone" name="Phone Number" autocomplete="tel" />
           </div>
-          <div class="field">
-            <label class="q" for="website">Current website <span class="hint">(if applicable)</span></label>
-            <input type="url" id="website" name="Current Website" placeholder="https://" />
+          <div class="field required">
+            <label class="q" for="website">Current website <span class="hint">(if applicable)</span><span class="req">*</span></label>
+            <input type="url" id="website" name="Current Website" placeholder="https://  (or N/A)" />
           </div>
         </div>
 
-        <div class="field">
-          <label class="q">Primary contact(s)</label>
+        <div class="field required">
+          <label class="q">Primary contact(s)<span class="req">*</span></label>
           <div id="contacts"></div>
           <div><button type="button" class="btn btn-ghost btn-small" id="addContact">+ Add another contact</button></div>
         </div>
@@ -323,8 +323,8 @@
       <!-- 3 -->
       <section class="card" id="s-comm" data-title="Communication">
         <div class="card-head"><span class="num">03</span><h2>Communication &amp; Decision-Making</h2></div>
-        <div class="field">
-          <label class="q">What is your preferred primary communication method during this project?</label>
+        <div class="field required">
+          <label class="q">What is your preferred primary communication method during this project?<span class="req">*</span></label>
           <div class="chips" data-group="Preferred Communication">
             <label class="chip"><input type="checkbox" name="Preferred Communication" value="Email"><span>Email</span></label>
             <label class="chip"><input type="checkbox" name="Preferred Communication" value="Phone"><span>Phone</span></label>
@@ -333,8 +333,8 @@
             <label class="chip"><input type="checkbox" name="Preferred Communication" value="Text Message"><span>Text Message</span></label>
           </div>
         </div>
-        <div class="field">
-          <label class="q" for="decisionMaker">Who will make final decisions on design and content sign-offs?</label>
+        <div class="field required">
+          <label class="q" for="decisionMaker">Who will make final decisions on design and content sign-offs?<span class="req">*</span></label>
           <input type="text" id="decisionMaker" name="Final Decision-Maker" placeholder="Name and role" />
         </div>
       </section>
@@ -342,12 +342,12 @@
       <!-- 4 -->
       <section class="card" id="s-brand" data-title="Brand Identity">
         <div class="card-head"><span class="num">04</span><h2>Brand Identity &amp; Assets</h2></div>
-        <div class="field">
-          <label class="q" for="established">What year was the company established?</label>
+        <div class="field required">
+          <label class="q" for="established">What year was the company established?<span class="req">*</span></label>
           <input type="number" id="established" name="Year Established" min="1800" max="2100" placeholder="e.g. 2012" style="max-width:180px" />
         </div>
-        <div class="field">
-          <label class="q" for="brandAssets">Do you have an official company logo, brand color palette, or typography preferences?</label>
+        <div class="field required">
+          <label class="q" for="brandAssets">Do you have an official company logo, brand color palette, or typography preferences?<span class="req">*</span></label>
           <span class="hint">Please attach logo vector files (SVG, AI, EPS, PDF) or PNGs if available.</span>
           <textarea id="brandAssets" name="Logo, Colors & Typography" placeholder="e.g. Navy #1A2B4C and gold, we use Montserrat for headings…"></textarea>
           <label class="file-drop" id="fileDrop">
@@ -365,25 +365,25 @@
             <input type="checkbox" class="switch" id="emailFiles" name="Files Via Email" value="Yes" role="switch" />
           </label>
         </div>
-        <div class="field">
-          <label class="q" for="guidelines">Do you have full brand guidelines or style documentation to share?</label>
+        <div class="field required">
+          <label class="q" for="guidelines">Do you have full brand guidelines or style documentation to share?<span class="req">*</span></label>
           <textarea id="guidelines" name="Brand Guidelines" style="min-height:70px"></textarea>
         </div>
-        <div class="field">
-          <label class="q" for="tools">What tools and software do you currently use to run your business?</label>
+        <div class="field required">
+          <label class="q" for="tools">What tools and software do you currently use to run your business?<span class="req">*</span></label>
           <span class="hint">e.g. Google Workspace, CRM, online booking software, email marketing services</span>
           <textarea id="tools" name="Business Tools & Platforms"></textarea>
         </div>
-        <div class="field">
-          <label class="q" for="printMaterials">Do you have existing printed marketing materials (brochures, business cards, signage) that should shape the web design?</label>
+        <div class="field required">
+          <label class="q" for="printMaterials">Do you have existing printed marketing materials (brochures, business cards, signage) that should shape the web design?<span class="req">*</span></label>
           <textarea id="printMaterials" name="Physical Marketing Materials" style="min-height:70px"></textarea>
         </div>
-        <div class="field">
-          <label class="q" for="domain">Do you already own a custom domain name and/or a website hosting account?</label>
+        <div class="field required">
+          <label class="q" for="domain">Do you already own a custom domain name and/or a website hosting account?<span class="req">*</span></label>
           <textarea id="domain" name="Domain & Hosting" placeholder="e.g. Yes, example.com through GoDaddy, no hosting yet" style="min-height:70px"></textarea>
         </div>
-        <div class="field">
-          <label class="q" for="social">Please list all social media channels you would like connected to the website.</label>
+        <div class="field required">
+          <label class="q" for="social">Please list all social media channels you would like connected to the website.<span class="req">*</span></label>
           <textarea id="social" name="Social Media Channels" placeholder="Instagram: @handle&#10;Facebook: facebook.com/…&#10;LinkedIn: …"></textarea>
         </div>
       </section>
@@ -391,12 +391,12 @@
       <!-- 5 -->
       <section class="card" id="s-scope" data-title="Scope & Functionality">
         <div class="card-head"><span class="num">05</span><h2>Website Scope &amp; Functionality</h2></div>
-        <div class="field">
-          <label class="q" for="services">Please list all key products or services to be featured on the site.</label>
+        <div class="field required">
+          <label class="q" for="services">Please list all key products or services to be featured on the site.<span class="req">*</span></label>
           <textarea id="services" name="Key Products / Services"></textarea>
         </div>
-        <div class="field">
-          <label class="q">What is the primary goal of the new website?</label>
+        <div class="field required">
+          <label class="q">What is the primary goal of the new website?<span class="req">*</span></label>
           <div class="chips">
             <label class="chip"><input type="checkbox" name="Primary Objective" value="Generating phone leads"><span>Generating phone leads</span></label>
             <label class="chip"><input type="checkbox" name="Primary Objective" value="Online bookings"><span>Online bookings</span></label>
@@ -405,8 +405,8 @@
           </div>
           <input type="text" name="Primary Objective (Other / Details)" placeholder="Other or more detail (optional)" />
         </div>
-        <div class="field">
-          <label class="q">What interactive features will you need?</label>
+        <div class="field required">
+          <label class="q">What interactive features will you need?<span class="req">*</span></label>
           <div class="chips">
             <label class="chip"><input type="checkbox" name="Interactive Features" value="Custom inquiry forms"><span>Custom inquiry forms</span></label>
             <label class="chip"><input type="checkbox" name="Interactive Features" value="Payment gateway"><span>Payment gateway</span></label>
@@ -414,22 +414,23 @@
             <label class="chip"><input type="checkbox" name="Interactive Features" value="Online booking / scheduling"><span>Online booking / scheduling</span></label>
             <label class="chip"><input type="checkbox" name="Interactive Features" value="Newsletter signup"><span>Newsletter signup</span></label>
             <label class="chip"><input type="checkbox" name="Interactive Features" value="Blog"><span>Blog</span></label>
+            <label class="chip"><input type="checkbox" name="Interactive Features" value="None needed"><span>None needed</span></label>
           </div>
           <input type="text" name="Interactive Features (Other / Details)" placeholder="Other features (optional)" />
         </div>
-        <div class="field">
-          <label class="q" for="pages">Please list all the pages you expect and an estimated total page count.</label>
+        <div class="field required">
+          <label class="q" for="pages">Please list all the pages you expect and an estimated total page count.<span class="req">*</span></label>
           <span class="hint">e.g. Home, About Us, Services, FAQ, Contact</span>
-          <textarea id="pages" name="Anticipated Pages"></textarea>
-          <input type="number" name="Estimated Page Count" min="1" placeholder="Estimated total pages" style="max-width:220px" />
+          <textarea id="pages" name="Anticipated Pages" data-required></textarea>
+          <input type="number" name="Estimated Page Count" data-required min="1" placeholder="Estimated total pages" style="max-width:220px" />
         </div>
       </section>
 
       <!-- 6 -->
       <section class="card" id="s-content" data-title="Content & Inspiration">
         <div class="card-head"><span class="num">06</span><h2>Content Strategy &amp; Design Inspiration</h2></div>
-        <div class="field">
-          <label class="q" for="copy">Will you provide the written content, or do you need professional copywriting?</label>
+        <div class="field required">
+          <label class="q" for="copy">Will you provide the written content, or do you need professional copywriting?<span class="req">*</span></label>
           <select id="copy" name="Written Content">
             <option value="">Select one…</option>
             <option>We will provide all written content</option>
@@ -438,42 +439,42 @@
             <option>Not sure yet</option>
           </select>
         </div>
-        <div class="field">
-          <label class="q">Do you have high-resolution photos, written text, or client testimonials ready to use?</label>
+        <div class="field required">
+          <label class="q">Do you have high-resolution photos, written text, or client testimonials ready to use?<span class="req">*</span></label>
           <div class="chips" role="radiogroup">
             <label class="chip"><input type="radio" name="Ready Content (Photos / Text / Testimonials)" value="Yes"><span>Yes</span></label>
             <label class="chip"><input type="radio" name="Ready Content (Photos / Text / Testimonials)" value="No"><span>No</span></label>
           </div>
         </div>
-        <div class="field">
-          <label class="q" for="keywords">Which 5–10 search terms or phrases would potential clients use to find your business on search engines?</label>
+        <div class="field required">
+          <label class="q" for="keywords">Which 5–10 search terms or phrases would potential clients use to find your business on search engines?<span class="req">*</span></label>
           <textarea id="keywords" name="Search Keywords" placeholder="One per line"></textarea>
         </div>
-        <div class="field">
-          <label class="q" for="inspiration">Please share 2–3 website URLs whose look or user experience you admire.</label>
+        <div class="field required">
+          <label class="q" for="inspiration">Please share 2–3 website URLs whose look or user experience you admire.<span class="req">*</span></label>
           <textarea id="inspiration" name="Inspiration Websites" placeholder="https://…  (what you like about it)"></textarea>
         </div>
-        <div class="field">
-          <label class="q" for="avoid">Is there anything on your current website or on competitors' sites that you want to avoid?</label>
+        <div class="field required">
+          <label class="q" for="avoid">Is there anything on your current website or on competitors' sites that you want to avoid?<span class="req">*</span></label>
           <textarea id="avoid" name="Elements to Avoid"></textarea>
         </div>
-        <div class="field">
-          <label class="q" for="different">What sets your business apart from others in your field?</label>
+        <div class="field required">
+          <label class="q" for="different">What sets your business apart from others in your field?<span class="req">*</span></label>
           <textarea id="different" name="Differentiators"></textarea>
         </div>
-        <div class="field">
-          <label class="q" for="awards">Are there industry certifications, accreditations, or awards to showcase?</label>
+        <div class="field required">
+          <label class="q" for="awards">Are there industry certifications, accreditations, or awards to showcase?<span class="req">*</span></label>
           <textarea id="awards" name="Certifications & Awards" style="min-height:70px"></textarea>
         </div>
-        <div class="field">
-          <label class="q">Do you have video footage or a hero video to embed on the site?</label>
+        <div class="field required">
+          <label class="q">Do you have video footage or a hero video to embed on the site?<span class="req">*</span></label>
           <div class="chips" role="radiogroup">
             <label class="chip"><input type="radio" name="Video Assets" value="Yes"><span>Yes</span></label>
             <label class="chip"><input type="radio" name="Video Assets" value="No"><span>No</span></label>
           </div>
         </div>
-        <div class="field">
-          <label class="q">Do you currently track analytics data (e.g. monthly site visitors or main traffic sources)?</label>
+        <div class="field required">
+          <label class="q">Do you currently track analytics data (e.g. monthly site visitors or main traffic sources)?<span class="req">*</span></label>
           <div class="chips" role="radiogroup">
             <label class="chip"><input type="radio" name="Analytics Data" value="Yes"><span>Yes</span></label>
             <label class="chip"><input type="radio" name="Analytics Data" value="No"><span>No</span></label>
@@ -484,8 +485,8 @@
       <!-- 7 -->
       <section class="card" id="s-timeline" data-title="Maintenance & Timeline">
         <div class="card-head"><span class="num">07</span><h2>Maintenance, Timeline &amp; Budget</h2></div>
-        <div class="field">
-          <label class="q" for="care">Are you interested in ongoing website care, security monitoring, and content maintenance after launch?</label>
+        <div class="field required">
+          <label class="q" for="care">Are you interested in ongoing website care, security monitoring, and content maintenance after launch?<span class="req">*</span></label>
           <select id="care" name="Ongoing Care Interest">
             <option value="">Select one…</option>
             <option>Yes, interested</option>
@@ -493,12 +494,12 @@
             <option>No, we'll handle it ourselves</option>
           </select>
         </div>
-        <div class="field">
-          <label class="q" for="internal">Who on your team will handle routine site updates once the project is finished?</label>
+        <div class="field required">
+          <label class="q" for="internal">Who on your team will handle routine site updates once the project is finished?<span class="req">*</span></label>
           <input type="text" id="internal" name="Internal Update Owner" placeholder="Name and role" />
         </div>
-        <div class="field">
-          <label class="q" for="launch">What is your target launch date?</label>
+        <div class="field required">
+          <label class="q" for="launch">What is your target launch date?<span class="req">*</span></label>
           <input type="date" id="launch" name="Target Launch Date" style="max-width:220px" />
         </div>
       </section>
@@ -675,18 +676,39 @@
     }
 
     // ---- Validation ----
-    function validate() {
-      let first = null;
-      form.querySelectorAll('.field.required').forEach(f => {
-        const ok = fieldAnswered(f);
-        f.classList.toggle('invalid', !ok);
-        if (!ok && !first) first = f;
-      });
-      if (first) {
-        first.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        toast('Please complete the required fields.');
+    // A required field is complete when it has an answer; fields with
+    // [data-required] inputs need each of those filled; contacts need at least
+    // one person's name plus an email or phone number.
+    function fieldComplete(f) {
+      if (f.querySelector('#contacts')) {
+        return getContacts().some(c => c.name && (c.email || c.phone));
       }
-      return !first;
+      const parts = f.querySelectorAll('[data-required]');
+      if (parts.length) return [...parts].every(i => i.value.trim() !== '');
+      return fieldAnswered(f);
+    }
+
+    // Adds an error message to each required field that doesn't have one.
+    form.querySelectorAll('.field.required').forEach(f => {
+      if (f.querySelector(':scope > .error-msg')) return;
+      const msg = f.querySelector('#contacts') ? "Please add at least one contact's name and an email or phone number."
+        : f.querySelector('[data-required]') ? 'Please list the pages and give an estimated total.'
+        : f.querySelector('.chips, select') ? 'Please choose an option.'
+        : "Please answer this question. Write “N/A” if it doesn't apply.";
+      f.append(Object.assign(document.createElement('span'), { className: 'error-msg', textContent: msg }));
+    });
+
+    function validate() {
+      const missing = [...form.querySelectorAll('.field.required')].filter(f => {
+        const ok = fieldComplete(f);
+        f.classList.toggle('invalid', !ok);
+        return !ok;
+      });
+      if (missing.length) {
+        missing[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        toast(missing.length === 1 ? '1 question still needs an answer.' : `${missing.length} questions still need an answer.`);
+      }
+      return !missing.length;
     }
 
     // ---- Export ----
@@ -872,7 +894,7 @@
 
     form.addEventListener('input', ev => {
       const f = ev.target.closest('.field.required');
-      if (f && fieldAnswered(f)) f.classList.remove('invalid');
+      if (f && fieldComplete(f)) f.classList.remove('invalid');
       save();
     });
     form.addEventListener('change', save);
