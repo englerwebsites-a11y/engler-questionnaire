@@ -439,8 +439,11 @@
           </select>
         </div>
         <div class="field">
-          <label class="q" for="readyContent">Do you have high-resolution photos, written text, or client testimonials ready to use?</label>
-          <textarea id="readyContent" name="Ready Content (Photos / Text / Testimonials)" style="min-height:70px"></textarea>
+          <label class="q">Do you have high-resolution photos, written text, or client testimonials ready to use?</label>
+          <div class="chips" role="radiogroup">
+            <label class="chip"><input type="radio" name="Ready Content (Photos / Text / Testimonials)" value="Yes"><span>Yes</span></label>
+            <label class="chip"><input type="radio" name="Ready Content (Photos / Text / Testimonials)" value="No"><span>No</span></label>
+          </div>
         </div>
         <div class="field">
           <label class="q" for="keywords">Which 5–10 search terms or phrases would potential clients use to find your business on search engines?</label>
@@ -470,8 +473,11 @@
           </div>
         </div>
         <div class="field">
-          <label class="q" for="analytics">Do you currently track analytics data (e.g. monthly site visitors or main traffic sources)?</label>
-          <textarea id="analytics" name="Analytics Data" style="min-height:70px"></textarea>
+          <label class="q">Do you currently track analytics data (e.g. monthly site visitors or main traffic sources)?</label>
+          <div class="chips" role="radiogroup">
+            <label class="chip"><input type="radio" name="Analytics Data" value="Yes"><span>Yes</span></label>
+            <label class="chip"><input type="radio" name="Analytics Data" value="No"><span>No</span></label>
+          </div>
         </div>
       </section>
 

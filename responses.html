@@ -151,6 +151,16 @@
     .sub-label { font-size: 0.8rem; color: var(--ink-soft); margin-top: 2px; }
     .answer a { color: var(--accent); }
 
+    .appraisal { border-color: var(--accent); }
+    .ap-row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--silver-line); }
+    .ap-label { font-weight: 600; }
+    .ap-detail { font-size: 0.83rem; color: var(--ink-soft); }
+    .ap-amount { font-family: var(--font-mono); font-size: 1rem; white-space: nowrap; }
+    .ap-total { border-bottom: none; padding-bottom: 0; }
+    .ap-total .ap-label { font-family: var(--font-display); font-size: 1.15rem; }
+    .ap-total .ap-amount { font-size: 1.35rem; font-weight: 500; color: var(--accent); }
+    .ap-note { margin-top: 14px; font-size: 0.83rem; color: var(--ink-soft); background: var(--bg); border-radius: 10px; padding: 10px 14px; }
+
     .chips { display: flex; flex-wrap: wrap; gap: 8px; }
     .chip {
       display: inline-block; padding: 8px 14px; border-radius: 999px;
@@ -292,6 +302,14 @@
       appId: '1:477147439593:web:43ceb566517778c8fdeb78'
     };
     const SUBMISSIONS_COLLECTION = 'questionnaireSubmissions';
+
+    // Appraisal pricing. Answer keys match the name attributes in index.html.
+    const PRICE_PER_PAGE = 100;
+    const PRICE_PER_FEATURE = 50;
+    const PAGE_COUNT_KEY = 'Estimated Page Count';
+    const PAGE_LIST_KEY = 'Anticipated Pages';
+    const FEATURES_KEY = 'Interactive Features';
+    const FEATURES_OTHER_KEY = 'Interactive Features (Other / Details)';
 
     const app = initializeApp(FIREBASE_CONFIG);
     const auth = getAuth(app);
@@ -492,6 +510,40 @@
       return [card];
     }
 
+    // ---- Appraisal ----
+    const money = n => '$' + n.toLocaleString('en-US');
+
+    // Uses the client's estimated page count; if they left it blank, counts
+    // the pages they listed (split on commas, new lines, semicolons, bullets).
+    function appraise(sub) {
+      const a = sub.answers || {};
+      let pages = parseInt(a[PAGE_COUNT_KEY], 10);
+      let pagesSource = 'estimated page count';
+      if (!(pages > 0)) {
+        pages = (a[PAGE_LIST_KEY] || '').split(/[,;\n•]+/).map(x => x.replace(/^[\s\-*\d.)]+/, '').trim()).filter(Boolean).length;
+        pagesSource = pages ? 'counted from listed pages' : 'no pages given';
+      }
+      const features = (a[FEATURES_KEY] || '').split(', ').filter(Boolean);
+      const pagesCost = pages * PRICE_PER_PAGE;
+      const featuresCost = features.length * PRICE_PER_FEATURE;
+      return { pages, pagesSource, features, other: (a[FEATURES_OTHER_KEY] || '').trim(), pagesCost, featuresCost, total: pagesCost + featuresCost };
+    }
+
+    function renderAppraisal(sub) {
+      const ap = appraise(sub);
+      const row = (label, detail, amount) => el('div', { class: 'ap-row' },
+        el('div', {}, el('div', { class: 'ap-label', text: label }), el('div', { class: 'ap-detail', text: detail })),
+        el('div', { class: 'ap-amount', text: money(amount) }));
+      const card = el('section', { class: 'card appraisal' },
+        el('div', { class: 'card-head' }, el('span', { class: 'num', text: '$' }), el('h2', { text: 'Appraisal' })),
+        row(`Pages × ${ap.pages}`, `${money(PRICE_PER_PAGE)} per page · ${ap.pagesSource}`, ap.pagesCost),
+        row(`Interactive features × ${ap.features.length}`,
+          `${money(PRICE_PER_FEATURE)} per feature` + (ap.features.length ? ` · ${ap.features.join(', ')}` : ''), ap.featuresCost),
+        el('div', { class: 'ap-row ap-total' }, el('div', { class: 'ap-label', text: 'Estimated total' }), el('div', { class: 'ap-amount', text: money(ap.total) })));
+      if (ap.other) card.append(el('div', { class: 'ap-note', text: `Not priced: other features the client described: “${ap.other}”` }));
+      return card;
+    }
+
     function fmtDate(sub) {
       const d = sub.submittedAt?.toDate?.();
       return d ? d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'Pending…';
@@ -536,7 +588,7 @@
         return card;
       }) : renderFallback(sub);
 
-      detail.replaceChildren(head, ...cards);
+      detail.replaceChildren(head, renderAppraisal(sub), ...cards);
       if (window.innerWidth <= 900) head.scrollIntoView({ behavior: 'smooth' });
     }
 
@@ -605,7 +657,7 @@
         const btn = el('button', { class: 'item' + (s.id === selectedId ? ' active' : ''), type: 'button' },
           n ? el('span', { class: 'clip', text: `📎 ${n}` }) : null,
           el('span', { class: 'name', text: s.companyName || 'Untitled' }),
-          el('span', { class: 'date', text: fmtDate(s) }));
+          el('span', { class: 'date', text: `${fmtDate(s)} · ${money(appraise(s).total)}` }));
         btn.onclick = () => showSubmission(s.id);
         return btn;
       }));
