@@ -531,6 +531,7 @@
 
   <div class="toast" id="toast"></div>
 
+  <script src="appraisal.js"></script>
   <script>
     // Submissions go to Firestore (collection below); its security rules live
     // in firebase/ and must be pasted into the Firebase console. Attached files
@@ -827,12 +828,20 @@
 
     // Asks the Apps Script to email the team about a new submission. Runs in
     // the background; the submission is already saved, so failures are ignored.
-    function notifyTeam(submissionId, company, contacts, summary) {
+    function notifyTeam(submissionId, data, contacts) {
       if (!DRIVE_UPLOAD_URL) return;
-      const replyTo = (contacts.find(c => c.email) || {}).email || '';
+      let appraisal = null;
+      try { appraisal = window.Appraisal.appraise(data); } catch (e) {}
       fetch(DRIVE_UPLOAD_URL, {
         method: 'POST',
-        body: JSON.stringify({ action: 'notify', submissionId, company, replyTo, summary })
+        body: JSON.stringify({
+          action: 'notify',
+          submissionId,
+          company: data['Company Name'],
+          replyTo: (contacts.find(c => c.email) || {}).email || '',
+          appraisal,
+          summary: toText({ ...data, 'Primary Contacts': contacts })
+        })
       }).catch(() => {});
     }
 
@@ -890,7 +899,7 @@
           userAgent: navigator.userAgent.slice(0, 300)
         });
         await Promise.race([saved, new Promise((_, reject) => setTimeout(() => reject(new Error('Save timed out')), SAVE_TIMEOUT_MS))]);
-        notifyTeam(docRef.id, data['Company Name'], contacts, toText({ ...data, 'Primary Contacts': contacts }));
+        notifyTeam(docRef.id, data, contacts);
         showThanks(files.filter(f => f.error).map(f => f.name));
       } catch (e) {
         console.error('Questionnaire submit failed', e);

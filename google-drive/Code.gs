@@ -37,6 +37,8 @@ function testNotification() {
     submissionId: 'testNotification01',
     company: 'TEST — notification check',
     replyTo: '',
+    appraisal: { pages: 5, pagesSource: 'estimated page count', pricePerPage: 100, pagesCost: 500,
+                 features: ['Custom inquiry forms', 'Blog'], pricePerFeature: 50, featuresCost: 100, total: 600 },
     summary: 'This is a test of the Engler questionnaire email notification.'
   });
   Logger.log('Test email sent to ' + NOTIFY_EMAIL);
@@ -85,15 +87,30 @@ function sendNotification_(req) {
   const company = String(req.company || 'Unknown company').replace(/[\r\n]+/g, ' ').slice(0, 100);
   const summary = String(req.summary || '').slice(0, 50000);
   const replyTo = String(req.replyTo || '').trim();
+  const ap = req.appraisal || null;
+
+  const num = v => Math.max(0, Math.round(Number(v) || 0));
+  const money = v => '$' + num(v).toLocaleString('en-US');
+  const subject = 'New questionnaire response: ' + company + (ap ? ' (est. ' + money(ap.total) + ')' : '');
+
+  let body = 'A new questionnaire response was submitted.\n\n' +
+    'Business: ' + company + '\n';
+  if (ap) {
+    const features = Array.isArray(ap.features) ? ap.features.map(String).join(', ') : '';
+    body += 'Estimated appraisal: ' + money(ap.total) + '\n' +
+      '  • Pages: ' + num(ap.pages) + ' × ' + money(ap.pricePerPage) + ' = ' + money(ap.pagesCost) +
+        (ap.pagesSource ? ' (' + String(ap.pagesSource).slice(0, 60) + ')' : '') + '\n' +
+      '  • Interactive features: ' + num(Array.isArray(ap.features) ? ap.features.length : 0) + ' × ' + money(ap.pricePerFeature) +
+        ' = ' + money(ap.featuresCost) + (features ? ' (' + features.slice(0, 300) + ')' : '') + '\n';
+    if (ap.other) body += '  • Not priced, other features described: ' + String(ap.other).slice(0, 300) + '\n';
+  }
+  body += '\nView it (with any uploaded files):\n' + RESPONSES_URL + '\n\n' +
+    '────────────────────────────────────────\n\n' + summary;
 
   const options = { name: 'Engler Questionnaire' };
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyTo)) options.replyTo = replyTo;
 
-  MailApp.sendEmail(NOTIFY_EMAIL, 'New questionnaire response: ' + company,
-    'A new questionnaire response was submitted.\n\n' +
-    'View it (with the appraisal and any uploaded files):\n' + RESPONSES_URL + '\n\n' +
-    '────────────────────────────────────────\n\n' + summary,
-    options);
+  MailApp.sendEmail(NOTIFY_EMAIL, subject, body, options);
 }
 
 function getRootFolder_() {
