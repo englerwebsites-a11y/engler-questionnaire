@@ -1,11 +1,11 @@
 /**
  * Engler questionnaire → Google Drive uploader and email notifier.
  *
- * Receives files attached on the questionnaire (index.html) and saves them to
+ * Receives files attached on the questionnaire (client-form.html) and saves them to
  * a Drive folder, one subfolder per submission, and emails NOTIFY_EMAIL when
  * a new submission is saved. Deploy as a web app:
  *   Execute as: Me    Who has access: Anyone
- * then put the /exec URL into DRIVE_UPLOAD_URL in index.html.
+ * then put the /exec URL into DRIVE_UPLOAD_URL in client-form.html.
  *
  * Run setup() once from the editor first: it asks for Drive permission and
  * creates the uploads folder (its link is printed in the execution log).

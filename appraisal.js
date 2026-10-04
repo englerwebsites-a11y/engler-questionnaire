@@ -1,6 +1,6 @@
 // Appraisal pricing, shared by portal.html (the Appraisal card) and
-// index.html (the new-submission email). Answer keys match the name
-// attributes in index.html.
+// client-form.html (the new-submission email). Answer keys match the name
+// attributes in client-form.html.
 (function () {
   const PRICE_PER_PAGE = 100;
   const PRICE_PER_FEATURE = 50;

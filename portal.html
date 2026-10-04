@@ -248,7 +248,7 @@
 <body>
   <header>
     <nav>
-      <a class="logo" href="./"><img class="mark" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAACKADAAQAAAABAAAACAAAAACVhHtSAAAAp0lEQVQYGWNkQID/CCaYxQgimaCC/0Ny+xj+///PEJbUD6aB4mANLCAGSJLpKyODoU0Kw4c3r4D0FbAiRkbG/yBjgBr/wyXff/jKICjAzWDi5siwZnIR2AKQCf8V1H3/84s7/Wfl0QbTYF1AzcxAJQ1XT+5gOH7+JcO//78Z2FjYGCRlZBj2H73HcPX8TrAJIAKk4T/QgWAaZCJIDCQB9gqIAQRYvQkAXB5PkvP3l5AAAAAASUVORK5CYII=" alt="Engler logo">ENGLER <small>RESPONSES</small></a>
+      <a class="logo" href="client-form"><img class="mark" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAACKADAAQAAAABAAAACAAAAACVhHtSAAAAp0lEQVQYGWNkQID/CCaYxQgimaCC/0Ny+xj+///PEJbUD6aB4mANLCAGSJLpKyODoU0Kw4c3r4D0FbAiRkbG/yBjgBr/wyXff/jKICjAzWDi5siwZnIR2AKQCf8V1H3/84s7/Wfl0QbTYF1AzcxAJQ1XT+5gOH7+JcO//78Z2FjYGCRlZBj2H73HcPX8TrAJIAKk4T/QgWAaZCJIDCQB9gqIAQRYvQkAXB5PkvP3l5AAAAAASUVORK5CYII=" alt="Engler logo">ENGLER <small>RESPONSES</small></a>
       <div class="nav-right" id="navRight" hidden>
         <span class="who" id="who"></span>
         <button class="btn btn-ghost btn-small" id="signOut">Sign out</button>
@@ -293,7 +293,7 @@
     import { getFirestore, collection, query, orderBy, onSnapshot, doc, deleteDoc }
       from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-    // Must match the config in index.html.
+    // Must match the config in client-form.html.
     const FIREBASE_CONFIG = {
       apiKey: 'AIzaSyCrmEk6X74MWQH6olX2N5Q5Zd7NJGY_SDk',
       authDomain: 'engler-questionnaire.firebaseapp.com',
@@ -385,7 +385,7 @@
     async function loadSchema() {
       if (schema) return schema;
       try {
-        const res = await fetch('./index.html', { cache: 'no-cache' });
+        const res = await fetch('./client-form.html', { cache: 'no-cache' });
         schema = parseSchema(await res.text());
       } catch (e) {
         console.warn('Could not load questionnaire layout', e);

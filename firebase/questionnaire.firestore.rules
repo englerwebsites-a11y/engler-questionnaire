@@ -1,4 +1,4 @@
-// Firestore rules for index.html.
+// Firestore rules for client-form.html.
 //
 // Paste this whole file into Firebase console > Firestore Database > Rules for
 // the engler-questionnaire project, replacing what's there, then Publish.
