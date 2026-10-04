@@ -22,7 +22,7 @@ const SHARE_WITH_LINK = true;
 
 // Where new-submission emails go, and the page linked from them.
 const NOTIFY_EMAIL = 'englerwebsites@gmail.com';
-const RESPONSES_URL = 'https://englerwebsites-a11y.github.io/engler-questionnaire/responses.html';
+const RESPONSES_URL = 'https://englerwebsites.com/responses.html';
 
 const ALLOWED_TYPES = /^(image\/[\w.+-]+|application\/(pdf|postscript|illustrator|octet-stream))$/;
 
