@@ -14,7 +14,7 @@
 const ROOT_FOLDER_NAME = 'Engler Questionnaire Uploads';
 const MAX_BYTES = 20 * 1024 * 1024;
 
-// Lets responses.html show image previews. Files are only viewable by someone
+// Lets the portal (portal.html) show image previews. Files are only viewable by someone
 // who has the link, and links are only listed on the password-protected
 // responses page. Set to false to keep files private to your Google account
 // (previews then only load while you're signed in to Google in that browser).
@@ -22,7 +22,7 @@ const SHARE_WITH_LINK = true;
 
 // Where new-submission emails go, and the page linked from them.
 const NOTIFY_EMAIL = 'englerwebsites@gmail.com';
-const RESPONSES_URL = 'https://englerwebsites.com/responses.html';
+const RESPONSES_URL = 'https://englerwebsites.com/portal';
 
 const ALLOWED_TYPES = /^(image\/[\w.+-]+|application\/(pdf|postscript|illustrator|octet-stream))$/;
 

@@ -1,4 +1,4 @@
-// Appraisal pricing, shared by responses.html (the Appraisal card) and
+// Appraisal pricing, shared by portal.html (the Appraisal card) and
 // index.html (the new-submission email). Answer keys match the name
 // attributes in index.html.
 (function () {

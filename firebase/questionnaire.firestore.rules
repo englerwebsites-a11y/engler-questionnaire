@@ -4,7 +4,7 @@
 // the engler-questionnaire project, replacing what's there, then Publish.
 //
 // Anyone can create a submission. Only the admin account (signed in on
-// responses.html) can read or delete them, and nobody can edit one.
+// portal.html) can read or delete them, and nobody can edit one.
 // isAdmin() below holds the admin user's UID from
 // Authentication > Users.
 
