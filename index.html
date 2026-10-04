@@ -2,13 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Engler</title>
-  <!-- The questionnaire lives at /client-form; send visitors to the bare domain there. -->
-  <meta http-equiv="refresh" content="0; url=client-form" />
-  <link rel="canonical" href="https://englerwebsites.com/client-form" />
-  <script>location.replace('client-form' + location.search + location.hash);</script>
+  <meta name="description" content="Engler — websites, drafted and built." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@800&family=Inter:wght@400;500&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet" />
+  <!-- Holding page. The questionnaire (/client-form) and portal (/portal) are
+       shared by direct link only, so nothing here links to them. -->
+  <style>
+    :root { --ink: #16233B; --ink-soft: #5F6776; --silver: #9BA3B0; --accent: #2F6BFF; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; display: grid; place-items: center; padding: 32px 16px;
+      font-family: 'Inter', sans-serif; color: var(--ink); text-align: center;
+      background: radial-gradient(circle at top right, rgba(47,107,255,0.16), transparent 40%),
+                  linear-gradient(180deg, #FFFFFF 0%, #F8F9FC 100%);
+    }
+    .mark { width: 56px; height: 56px; border-radius: 12px; image-rendering: pixelated; }
+    h1 { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: clamp(2.4rem, 8vw, 3.6rem); letter-spacing: -0.03em; margin: 18px 0 6px; }
+    .tag { font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--silver); }
+    p { color: var(--ink-soft); margin-top: 28px; }
+    a { color: var(--accent); font-weight: 500; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
 </head>
 <body>
-  <p><a href="client-form">Continue to the Engler project questionnaire</a></p>
+  <main>
+    <img class="mark" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAACKADAAQAAAABAAAACAAAAACVhHtSAAAAp0lEQVQYGWNkQID/CCaYxQgimaCC/0Ny+xj+///PEJbUD6aB4mANLCAGSJLpKyODoU0Kw4c3r4D0FbAiRkbG/yBjgBr/wyXff/jKICjAzWDi5siwZnIR2AKQCf8V1H3/84s7/Wfl0QbTYF1AzcxAJQ1XT+5gOH7+JcO//78Z2FjYGCRlZBj2H73HcPX8TrAJIAKk4T/QgWAaZCJIDCQB9gqIAQRYvQkAXB5PkvP3l5AAAAAASUVORK5CYII=" alt="Engler logo">
+    <h1>ENGLER</h1>
+    <div class="tag">Websites, drafted &amp; built</div>
+    <p>Get in touch: <a href="mailto:englerwebsites@gmail.com">englerwebsites@gmail.com</a></p>
+  </main>
 </body>
 </html>
