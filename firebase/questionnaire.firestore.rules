@@ -7,6 +7,8 @@
 // portal.html) can read or delete them, and nobody can edit one.
 // questionnaireReviews holds one doc per submission the team has opened, so
 // the Team Portal can show how many are still unreviewed. Admin only.
+// questionnaireFees holds extra fees added on the Appraisals page, one doc
+// per submission. Admin only.
 // isAdmin() below holds the admin user's UID from
 // Authentication > Users.
 
@@ -43,6 +45,15 @@ service cloud.firestore {
       allow create, update: if isAdmin()
                             && request.resource.data.keys().hasOnly(['reviewedAt'])
                             && request.resource.data.reviewedAt == request.time;
+    }
+
+    match /questionnaireFees/{submissionId} {
+      allow read, delete: if isAdmin();
+      allow create, update: if isAdmin()
+                            && request.resource.data.keys().hasOnly(['fees', 'updatedAt'])
+                            && request.resource.data.fees is list
+                            && request.resource.data.fees.size() <= 50
+                            && request.resource.data.updatedAt == request.time;
     }
 
   }
