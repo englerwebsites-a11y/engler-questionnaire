@@ -5,6 +5,8 @@
 //
 // Anyone can create a submission. Only the admin account (signed in on
 // portal.html) can read or delete them, and nobody can edit one.
+// questionnaireReviews holds one doc per submission the team has opened, so
+// the Team Portal can show how many are still unreviewed. Admin only.
 // isAdmin() below holds the admin user's UID from
 // Authentication > Users.
 
@@ -34,6 +36,13 @@ service cloud.firestore {
                     && request.resource.data.summary is string
                     && request.resource.data.summary.size() <= 100000
                     && request.resource.data.submittedAt == request.time;
+    }
+
+    match /questionnaireReviews/{submissionId} {
+      allow read, delete: if isAdmin();
+      allow create, update: if isAdmin()
+                            && request.resource.data.keys().hasOnly(['reviewedAt'])
+                            && request.resource.data.reviewedAt == request.time;
     }
 
   }
