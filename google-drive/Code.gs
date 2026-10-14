@@ -4,7 +4,7 @@
  * Receives files attached on the questionnaire (client-form.html) and saves them to
  * a Drive folder, one subfolder per submission, emails NOTIFY_EMAIL when
  * a new submission is saved, and emails the client a confirmation with their
- * order number. Deploy as a web app:
+ * order number, and starts Stripe checkouts for the payment page. Deploy as a web app:
  *   Execute as: Me    Who has access: Anyone
  * then put the /exec URL into DRIVE_UPLOAD_URL in client-form.html.
  *
@@ -29,6 +29,14 @@ const RESPONSES_URL = 'https://englerwebsites.com/portal';
 // the text is fixed, each submission gets at most one, and there's a daily cap.
 const CONFIRMATION_SUBJECT = 'Questionnaire confirmation';
 const MAX_CONFIRMATIONS_PER_DAY = 50;
+
+// Stripe checkout for englerwebsites.com/payment. Put a Stripe key that can write Checkout
+// Sessions in Project Settings > Script properties as STRIPE_SECRET_KEY. The amount always
+// comes from the order's published total (orderTotals in Firestore), never from the browser.
+const PAYMENT_PAGE_URL = 'https://englerwebsites.com/payment';
+const FIRESTORE_DOCS = 'https://firestore.googleapis.com/v1/projects/engler-questionnaire/databases/(default)/documents';
+const FIREBASE_WEB_KEY = 'AIzaSyCrmEk6X74MWQH6olX2N5Q5Zd7NJGY_SDk';
+const ORDER_NUMBER_PATTERN = /^ENG-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/;
 
 const ALLOWED_TYPES = /^(image\/[\w.+-]+|application\/(pdf|postscript|illustrator|octet-stream))$/;
 
@@ -63,6 +71,9 @@ function doGet() {
 function doPost(e) {
   try {
     const req = JSON.parse(e.postData.contents);
+    if (req.action === 'checkout') {
+      return json_(createCheckout_(String(req.orderNo || '')));
+    }
     if (req.action === 'notify') {
       sendNotification_(req);
       try { sendConfirmation_(req); } catch (err) { console.warn('Confirmation email not sent: ' + err); }
@@ -241,4 +252,49 @@ function mul64_(a, b) {
     carry = Math.floor(t / 65536);
   }
   return [(r[3] * 65536 + r[2]) >>> 0, (r[1] * 65536 + r[0]) >>> 0];
+}
+
+// Starts a Stripe Checkout for an order's published total and returns its URL.
+function createCheckout_(orderNo) {
+  if (!ORDER_NUMBER_PATTERN.test(orderNo)) return { ok: false, error: 'Invalid order number' };
+  const key = PropertiesService.getScriptProperties().getProperty('STRIPE_SECRET_KEY');
+  if (!key) return { ok: false, error: 'Online payment is not set up yet' };
+
+  const res = UrlFetchApp.fetch(FIRESTORE_DOCS + '/orderTotals/' + encodeURIComponent(orderNo) + '?key=' + FIREBASE_WEB_KEY,
+    { muteHttpExceptions: true });
+  if (res.getResponseCode() === 404 || res.getResponseCode() === 403) return { ok: false, error: 'Order not found' };
+  if (res.getResponseCode() !== 200) throw new Error('Order lookup failed: HTTP ' + res.getResponseCode());
+  const fields = JSON.parse(res.getContentText()).fields || {};
+  const total = Number(fields.total && (fields.total.doubleValue != null ? fields.total.doubleValue : fields.total.integerValue));
+  const company = String(fields.company && fields.company.stringValue || '').slice(0, 200);
+  const cents = Math.round(total * 100);
+  if (!(cents >= 50)) return { ok: false, error: 'This order has no amount to pay online' };
+
+  const back = PAYMENT_PAGE_URL + '?order=' + encodeURIComponent(orderNo);
+  const description = 'Engler website, order ' + orderNo + (company ? ' (' + company + ')' : '');
+  const stripe = UrlFetchApp.fetch('https://api.stripe.com/v1/checkout/sessions', {
+    method: 'post',
+    headers: { Authorization: 'Bearer ' + key },
+    muteHttpExceptions: true,
+    payload: {
+      'mode': 'payment',
+      'line_items[0][quantity]': '1',
+      'line_items[0][price_data][currency]': 'usd',
+      'line_items[0][price_data][unit_amount]': String(cents),
+      'line_items[0][price_data][product_data][name]': 'Engler website — order ' + orderNo,
+      'line_items[0][price_data][product_data][description]': company || 'Website design and build',
+      'client_reference_id': orderNo,
+      'metadata[order_number]': orderNo,
+      'payment_intent_data[description]': description,
+      'payment_intent_data[metadata][order_number]': orderNo,
+      'success_url': back + '&paid=1',
+      'cancel_url': back + '&cancelled=1'
+    }
+  });
+  const session = JSON.parse(stripe.getContentText());
+  if (stripe.getResponseCode() !== 200 || !session.url) {
+    console.error('Stripe checkout failed: ' + stripe.getContentText());
+    return { ok: false, error: "Couldn't start the payment" };
+  }
+  return { ok: true, url: session.url };
 }
