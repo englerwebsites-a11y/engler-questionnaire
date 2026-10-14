@@ -201,22 +201,44 @@ function confirmationEmail_(to, orderNo) {
 }
 
 // Same order numbers as order-number.js on the website (ENG-XXXX-XXXX), worked out from
-// the submission ID so the email can't be made to show any other text.
+// the submission ID so the email can't be made to show any other text. Apps Script doesn't
+// support BigInt, so the 64-bit hash is done on [high, low] pairs of 32-bit numbers.
 function orderNumber_(id) {
   const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-  const M = 0xffffffffffffffffn;
-  let h = 0xcbf29ce484222325n;
+  let h = [0xcbf29ce4, 0x84222325];
   for (const ch of String(id)) {
-    h ^= BigInt(ch.charCodeAt(0));
-    h = (h * 0x100000001b3n) & M;
+    h = [h[0], (h[1] ^ ch.charCodeAt(0)) >>> 0];
+    h = mul64_(h, [0x00000100, 0x000001b3]);
   }
-  h ^= h >> 33n; h = (h * 0xff51afd7ed558ccdn) & M;
-  h ^= h >> 33n; h = (h * 0xc4ceb9fe1a85ec53n) & M;
-  h ^= h >> 33n;
+  h = xor64_(h, shr64_(h, 33)); h = mul64_(h, [0xff51afd7, 0xed558ccd]);
+  h = xor64_(h, shr64_(h, 33)); h = mul64_(h, [0xc4ceb9fe, 0x1a85ec53]);
+  h = xor64_(h, shr64_(h, 33));
   let code = '';
   for (let i = 0; i < 8; i++) {
-    code += ALPHABET[Number(h & 31n)];
-    h >>= 5n;
+    code += ALPHABET[h[1] & 31];
+    h = shr64_(h, 5);
   }
   return 'ENG-' + code.slice(0, 4) + '-' + code.slice(4);
+}
+
+function xor64_(a, b) { return [(a[0] ^ b[0]) >>> 0, (a[1] ^ b[1]) >>> 0]; }
+
+function shr64_(a, n) {
+  if (n >= 32) return [0, a[0] >>> (n - 32)];
+  return [a[0] >>> n, ((a[1] >>> n) | (a[0] << (32 - n))) >>> 0];
+}
+
+// (a × b) mod 2^64, using 16-bit pieces so no step loses precision.
+function mul64_(a, b) {
+  const x = [a[1] & 0xffff, a[1] >>> 16, a[0] & 0xffff, a[0] >>> 16];
+  const y = [b[1] & 0xffff, b[1] >>> 16, b[0] & 0xffff, b[0] >>> 16];
+  const r = [0, 0, 0, 0];
+  let carry = 0;
+  for (let k = 0; k < 4; k++) {
+    let t = carry;
+    for (let i = 0; i <= k; i++) t += x[i] * y[k - i];
+    r[k] = t % 65536;
+    carry = Math.floor(t / 65536);
+  }
+  return [(r[3] * 65536 + r[2]) >>> 0, (r[1] * 65536 + r[0]) >>> 0];
 }
