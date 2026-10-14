@@ -23,6 +23,8 @@ const SHARE_WITH_LINK = true;
 
 // Where new-submission emails go, and the page linked from them.
 const NOTIFY_EMAIL = 'englerwebsites@gmail.com';
+// Shown to clients and used as the reply-to address on their confirmation email.
+const SUPPORT_EMAIL = 'support@englerwebsites.com';
 const RESPONSES_URL = 'https://englerwebsites.com/portal';
 
 // Confirmation emails to clients. The recipient comes from the public form, so
@@ -210,7 +212,7 @@ function confirmationEmail_(to, orderNo) {
       '<p style="margin:24px 0 0;color:#5F6776;font-size:14px">— The Engler team<br>' +
         '<a href="https://englerwebsites.com" style="color:#2F6BFF">englerwebsites.com</a> · (530) 691-2191</p>' +
     '</div>';
-  return { to: to, subject: CONFIRMATION_SUBJECT, body: body, htmlBody: htmlBody, name: 'Engler', replyTo: NOTIFY_EMAIL };
+  return { to: to, subject: CONFIRMATION_SUBJECT, body: body, htmlBody: htmlBody, name: 'Engler', replyTo: SUPPORT_EMAIL };
 }
 
 // Same order numbers as order-number.js on the website (ENG-XXXX-XXXX), worked out from
