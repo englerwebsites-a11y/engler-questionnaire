@@ -33,6 +33,8 @@ const MAX_CONFIRMATIONS_PER_DAY = 50;
 // Stripe checkout for englerwebsites.com/payment. Put a Stripe key that can write Checkout
 // Sessions in Project Settings > Script properties as STRIPE_SECRET_KEY. The amount always
 // comes from the order's published total (orderTotals in Firestore), never from the browser.
+// With STRIPE_PUBLISHABLE_KEY (pk_…, same mode as the secret key) also set, the checkout is
+// embedded in the payment page; without it, the page sends clients to Stripe's hosted page.
 const PAYMENT_PAGE_URL = 'https://englerwebsites.com/payment';
 const FIRESTORE_DOCS = 'https://firestore.googleapis.com/v1/projects/engler-questionnaire/databases/(default)/documents';
 const FIREBASE_WEB_KEY = 'AIzaSyCrmEk6X74MWQH6olX2N5Q5Zd7NJGY_SDk';
@@ -263,8 +265,11 @@ function postCheckoutSession_(key, payload) {
   });
 }
 
-function checkoutPayload_(orderNo, cents, company, back) {
-  return {
+function checkoutPayload_(orderNo, cents, company, back, embedded) {
+  const finish = embedded
+    ? { 'ui_mode': 'embedded', 'redirect_on_completion': 'if_required', 'return_url': back + '&paid=1' }
+    : { 'success_url': back + '&paid=1', 'cancel_url': back + '&cancelled=1' };
+  return Object.assign({
     'mode': 'payment',
     // Managed Payments (Stripe as merchant of record) is for digital products and needs a
     // product tax code; custom website builds are a service Engler sells directly.
@@ -277,10 +282,8 @@ function checkoutPayload_(orderNo, cents, company, back) {
     'client_reference_id': orderNo,
     'metadata[order_number]': orderNo,
     'payment_intent_data[description]': 'Engler website, order ' + orderNo + (company ? ' (' + company + ')' : ''),
-    'payment_intent_data[metadata][order_number]': orderNo,
-    'success_url': back + '&paid=1',
-    'cancel_url': back + '&cancelled=1'
-  };
+    'payment_intent_data[metadata][order_number]': orderNo
+  }, finish);
 }
 
 // Run from the editor to check the Stripe setup: makes an unpaid $1 test checkout and logs
@@ -289,15 +292,24 @@ function testStripe() {
   const key = PropertiesService.getScriptProperties().getProperty('STRIPE_SECRET_KEY');
   if (!key) { Logger.log('No STRIPE_SECRET_KEY script property found.'); return; }
   Logger.log('Key type: ' + key.slice(0, 8) + '…  length ' + key.length + (key.trim() !== key ? '  (has extra spaces)' : ''));
-  const res = postCheckoutSession_(key, checkoutPayload_('ENG-TEST-0000', 100, 'Engler setup test', PAYMENT_PAGE_URL + '?order=ENG-TEST-0000'));
+  const pk = (PropertiesService.getScriptProperties().getProperty('STRIPE_PUBLISHABLE_KEY') || '').trim();
+  Logger.log(pk ? 'Publishable key: ' + pk.slice(0, 8) + '… (embedded checkout)' : 'No STRIPE_PUBLISHABLE_KEY: checkout opens on Stripe\'s page');
+  const res = postCheckoutSession_(key, checkoutPayload_('ENG-TEST-0000', 100, 'Engler setup test', PAYMENT_PAGE_URL + '?order=ENG-TEST-0000', !!pk));
   Logger.log('Stripe answered ' + res.getResponseCode() + ': ' + res.getContentText().slice(0, 600));
 }
 
 // Starts a Stripe Checkout for an order's published total and returns its URL.
 function createCheckout_(orderNo) {
   if (!ORDER_NUMBER_PATTERN.test(orderNo)) return { ok: false, error: 'Invalid order number' };
-  const key = PropertiesService.getScriptProperties().getProperty('STRIPE_SECRET_KEY');
+  const props = PropertiesService.getScriptProperties();
+  const key = props.getProperty('STRIPE_SECRET_KEY');
   if (!key) return { ok: false, error: 'Online payment is not set up yet' };
+  const publishableKey = (props.getProperty('STRIPE_PUBLISHABLE_KEY') || '').trim();
+  const mode = k => /_live_/.test(k) ? 'live' : 'test';
+  if (publishableKey && mode(publishableKey) !== mode(key)) {
+    console.error('STRIPE_PUBLISHABLE_KEY is a ' + mode(publishableKey) + ' key but STRIPE_SECRET_KEY is a ' + mode(key) + ' key');
+    return { ok: false, error: 'Online payment is misconfigured' };
+  }
 
   const res = UrlFetchApp.fetch(FIRESTORE_DOCS + '/orderTotals/' + encodeURIComponent(orderNo) + '?key=' + FIREBASE_WEB_KEY,
     { muteHttpExceptions: true });
@@ -310,11 +322,13 @@ function createCheckout_(orderNo) {
   if (!(cents >= 50)) return { ok: false, error: 'This order has no amount to pay online' };
 
   const back = PAYMENT_PAGE_URL + '?order=' + encodeURIComponent(orderNo);
-  const stripe = postCheckoutSession_(key, checkoutPayload_(orderNo, cents, company, back));
+  const stripe = postCheckoutSession_(key, checkoutPayload_(orderNo, cents, company, back, !!publishableKey));
   const session = JSON.parse(stripe.getContentText());
-  if (stripe.getResponseCode() !== 200 || !session.url) {
+  if (stripe.getResponseCode() !== 200 || !(publishableKey ? session.client_secret : session.url)) {
     console.error('Stripe checkout failed: ' + stripe.getContentText());
     return { ok: false, error: "Couldn't start the payment" };
   }
-  return { ok: true, url: session.url };
+  return publishableKey
+    ? { ok: true, clientSecret: session.client_secret, publishableKey: publishableKey }
+    : { ok: true, url: session.url };
 }
