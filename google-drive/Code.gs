@@ -267,7 +267,7 @@ function postCheckoutSession_(key, payload) {
 
 function checkoutPayload_(orderNo, cents, company, back, embedded) {
   const finish = embedded
-    ? { 'ui_mode': 'embedded', 'redirect_on_completion': 'if_required', 'return_url': back + '&paid=1' }
+    ? { 'ui_mode': 'embedded_page', 'redirect_on_completion': 'if_required', 'return_url': back + '&paid=1' }
     : { 'success_url': back + '&paid=1', 'cancel_url': back + '&cancelled=1' };
   return Object.assign({
     'mode': 'payment',
