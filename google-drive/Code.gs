@@ -254,6 +254,45 @@ function mul64_(a, b) {
   return [(r[3] * 65536 + r[2]) >>> 0, (r[1] * 65536 + r[0]) >>> 0];
 }
 
+function postCheckoutSession_(key, payload) {
+  return UrlFetchApp.fetch('https://api.stripe.com/v1/checkout/sessions', {
+    method: 'post',
+    headers: { Authorization: 'Bearer ' + key.trim() },
+    muteHttpExceptions: true,
+    payload: payload
+  });
+}
+
+function checkoutPayload_(orderNo, cents, company, back) {
+  return {
+    'mode': 'payment',
+    // Managed Payments (Stripe as merchant of record) is for digital products and needs a
+    // product tax code; custom website builds are a service Engler sells directly.
+    'managed_payments[enabled]': 'false',
+    'line_items[0][quantity]': '1',
+    'line_items[0][price_data][currency]': 'usd',
+    'line_items[0][price_data][unit_amount]': String(cents),
+    'line_items[0][price_data][product_data][name]': 'Engler website — order ' + orderNo,
+    'line_items[0][price_data][product_data][description]': company || 'Website design and build',
+    'client_reference_id': orderNo,
+    'metadata[order_number]': orderNo,
+    'payment_intent_data[description]': 'Engler website, order ' + orderNo + (company ? ' (' + company + ')' : ''),
+    'payment_intent_data[metadata][order_number]': orderNo,
+    'success_url': back + '&paid=1',
+    'cancel_url': back + '&cancelled=1'
+  };
+}
+
+// Run from the editor to check the Stripe setup: makes an unpaid $1 test checkout and logs
+// Stripe's answer.
+function testStripe() {
+  const key = PropertiesService.getScriptProperties().getProperty('STRIPE_SECRET_KEY');
+  if (!key) { Logger.log('No STRIPE_SECRET_KEY script property found.'); return; }
+  Logger.log('Key type: ' + key.slice(0, 8) + '…  length ' + key.length + (key.trim() !== key ? '  (has extra spaces)' : ''));
+  const res = postCheckoutSession_(key, checkoutPayload_('ENG-TEST-0000', 100, 'Engler setup test', PAYMENT_PAGE_URL + '?order=ENG-TEST-0000'));
+  Logger.log('Stripe answered ' + res.getResponseCode() + ': ' + res.getContentText().slice(0, 600));
+}
+
 // Starts a Stripe Checkout for an order's published total and returns its URL.
 function createCheckout_(orderNo) {
   if (!ORDER_NUMBER_PATTERN.test(orderNo)) return { ok: false, error: 'Invalid order number' };
@@ -271,26 +310,7 @@ function createCheckout_(orderNo) {
   if (!(cents >= 50)) return { ok: false, error: 'This order has no amount to pay online' };
 
   const back = PAYMENT_PAGE_URL + '?order=' + encodeURIComponent(orderNo);
-  const description = 'Engler website, order ' + orderNo + (company ? ' (' + company + ')' : '');
-  const stripe = UrlFetchApp.fetch('https://api.stripe.com/v1/checkout/sessions', {
-    method: 'post',
-    headers: { Authorization: 'Bearer ' + key },
-    muteHttpExceptions: true,
-    payload: {
-      'mode': 'payment',
-      'line_items[0][quantity]': '1',
-      'line_items[0][price_data][currency]': 'usd',
-      'line_items[0][price_data][unit_amount]': String(cents),
-      'line_items[0][price_data][product_data][name]': 'Engler website — order ' + orderNo,
-      'line_items[0][price_data][product_data][description]': company || 'Website design and build',
-      'client_reference_id': orderNo,
-      'metadata[order_number]': orderNo,
-      'payment_intent_data[description]': description,
-      'payment_intent_data[metadata][order_number]': orderNo,
-      'success_url': back + '&paid=1',
-      'cancel_url': back + '&cancelled=1'
-    }
-  });
+  const stripe = postCheckoutSession_(key, checkoutPayload_(orderNo, cents, company, back));
   const session = JSON.parse(stripe.getContentText());
   if (stripe.getResponseCode() !== 200 || !session.url) {
     console.error('Stripe checkout failed: ' + stripe.getContentText());
