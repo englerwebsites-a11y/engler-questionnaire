@@ -2,8 +2,9 @@
  * Engler questionnaire → Google Drive uploader and email notifier.
  *
  * Receives files attached on the questionnaire (client-form.html) and saves them to
- * a Drive folder, one subfolder per submission, and emails NOTIFY_EMAIL when
- * a new submission is saved. Deploy as a web app:
+ * a Drive folder, one subfolder per submission, emails NOTIFY_EMAIL when
+ * a new submission is saved, and emails the client a confirmation with their
+ * order number. Deploy as a web app:
  *   Execute as: Me    Who has access: Anyone
  * then put the /exec URL into DRIVE_UPLOAD_URL in client-form.html.
  *
@@ -23,6 +24,11 @@ const SHARE_WITH_LINK = true;
 // Where new-submission emails go, and the page linked from them.
 const NOTIFY_EMAIL = 'englerwebsites@gmail.com';
 const RESPONSES_URL = 'https://englerwebsites.com/portal';
+
+// Confirmation emails to clients. The recipient comes from the public form, so
+// the text is fixed, each submission gets at most one, and there's a daily cap.
+const CONFIRMATION_SUBJECT = 'Questionnaire confirmation';
+const MAX_CONFIRMATIONS_PER_DAY = 50;
 
 const ALLOWED_TYPES = /^(image\/[\w.+-]+|application\/(pdf|postscript|illustrator|octet-stream))$/;
 
@@ -44,6 +50,12 @@ function testNotification() {
   Logger.log('Test email sent to ' + NOTIFY_EMAIL);
 }
 
+// Run from the editor to preview the client confirmation email (sent to NOTIFY_EMAIL).
+function testConfirmation() {
+  MailApp.sendEmail(confirmationEmail_(NOTIFY_EMAIL, orderNumber_('testConfirmation01')));
+  Logger.log('Test confirmation sent to ' + NOTIFY_EMAIL);
+}
+
 function doGet() {
   return ContentService.createTextOutput('Engler uploader is running.');
 }
@@ -53,6 +65,7 @@ function doPost(e) {
     const req = JSON.parse(e.postData.contents);
     if (req.action === 'notify') {
       sendNotification_(req);
+      try { sendConfirmation_(req); } catch (err) { console.warn('Confirmation email not sent: ' + err); }
       return json_({ ok: true });
     }
 
@@ -141,4 +154,69 @@ function getSubmissionFolder_(submissionId, company) {
 
 function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+// Emails the client that their questionnaire arrived, with its order number.
+function sendConfirmation_(req) {
+  const submissionId = String(req.submissionId || '');
+  if (!/^[A-Za-z0-9]{10,40}$/.test(submissionId)) throw new Error('Invalid submission id');
+  const to = String(req.replyTo || '').trim();
+  if (!/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(to) || to.length > 200) return;
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const sentKey = 'confirmed_' + submissionId;
+    if (props.getProperty(sentKey)) return;
+    const today = Utilities.formatDate(new Date(), 'UTC', 'yyyy-MM-dd');
+    const countKey = 'confirmations_' + today;
+    const count = Number(props.getProperty(countKey) || 0);
+    if (count >= MAX_CONFIRMATIONS_PER_DAY) throw new Error('Daily confirmation limit reached');
+
+    MailApp.sendEmail(confirmationEmail_(to, orderNumber_(submissionId)));
+    props.setProperty(sentKey, today);
+    props.setProperty(countKey, String(count + 1));
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function confirmationEmail_(to, orderNo) {
+  const body =
+    'Thank you for filling out the website project questionnaire! Your order code is ' + orderNo +
+    ', so please hold on to that. Our team will be in touch with you shortly!\n\n' +
+    '— The Engler team\nenglerwebsites.com · (530) 691-2191';
+  const htmlBody =
+    '<div style="font-family:Helvetica,Arial,sans-serif;color:#16233B;max-width:520px;line-height:1.6">' +
+      '<h2 style="margin:0 0 12px;font-size:20px">Questionnaire confirmation</h2>' +
+      '<p style="margin:0 0 16px">Thank you for filling out the website project questionnaire!</p>' +
+      '<p style="margin:0 0 6px">Your order code is</p>' +
+      '<p style="margin:0 0 16px;font-family:Menlo,Consolas,monospace;font-size:20px;font-weight:bold;letter-spacing:1px">' + orderNo + '</p>' +
+      '<p style="margin:0 0 16px">Please hold on to that. Our team will be in touch with you shortly!</p>' +
+      '<p style="margin:24px 0 0;color:#5F6776;font-size:14px">— The Engler team<br>' +
+        '<a href="https://englerwebsites.com" style="color:#2F6BFF">englerwebsites.com</a> · (530) 691-2191</p>' +
+    '</div>';
+  return { to: to, subject: CONFIRMATION_SUBJECT, body: body, htmlBody: htmlBody, name: 'Engler', replyTo: NOTIFY_EMAIL };
+}
+
+// Same order numbers as order-number.js on the website (ENG-XXXX-XXXX), worked out from
+// the submission ID so the email can't be made to show any other text.
+function orderNumber_(id) {
+  const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+  const M = 0xffffffffffffffffn;
+  let h = 0xcbf29ce484222325n;
+  for (const ch of String(id)) {
+    h ^= BigInt(ch.charCodeAt(0));
+    h = (h * 0x100000001b3n) & M;
+  }
+  h ^= h >> 33n; h = (h * 0xff51afd7ed558ccdn) & M;
+  h ^= h >> 33n; h = (h * 0xc4ceb9fe1a85ec53n) & M;
+  h ^= h >> 33n;
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += ALPHABET[Number(h & 31n)];
+    h >>= 5n;
+  }
+  return 'ENG-' + code.slice(0, 4) + '-' + code.slice(4);
 }
