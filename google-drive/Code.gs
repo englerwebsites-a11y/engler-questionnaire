@@ -39,7 +39,6 @@ const MAX_CONFIRMATIONS_PER_DAY = 50;
 // embedded in the payment page; without it, the page sends clients to Stripe's hosted page.
 const PAYMENT_PAGE_URL = 'https://englerwebsites.com/payment';
 const FIRESTORE_DOCS = 'https://firestore.googleapis.com/v1/projects/engler-questionnaire/databases/(default)/documents';
-const FIREBASE_WEB_KEY = 'AIzaSyCrmEk6X74MWQH6olX2N5Q5Zd7NJGY_SDk';
 const ORDER_NUMBER_PATTERN = /^ENG-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/;
 
 const ALLOWED_TYPES = /^(image\/[\w.+-]+|application\/(pdf|postscript|illustrator|octet-stream))$/;
@@ -313,7 +312,7 @@ function createCheckout_(orderNo) {
     return { ok: false, error: 'Online payment is misconfigured' };
   }
 
-  const res = UrlFetchApp.fetch(FIRESTORE_DOCS + '/orderTotals/' + encodeURIComponent(orderNo) + '?key=' + FIREBASE_WEB_KEY,
+  const res = UrlFetchApp.fetch(FIRESTORE_DOCS + '/orderTotals/' + encodeURIComponent(orderNo),
     { muteHttpExceptions: true });
   if (res.getResponseCode() === 404 || res.getResponseCode() === 403) return { ok: false, error: 'Order not found' };
   if (res.getResponseCode() !== 200) throw new Error('Order lookup failed: HTTP ' + res.getResponseCode());
