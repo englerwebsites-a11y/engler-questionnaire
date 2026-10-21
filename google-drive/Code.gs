@@ -24,7 +24,7 @@ const SHARE_WITH_LINK = true;
 // Where new-submission emails go, and the page linked from them.
 const NOTIFY_EMAIL = 'englerwebsites@gmail.com';
 // Shown to clients and used as the reply-to address on their confirmation email.
-const SUPPORT_EMAIL = 'support@englerwebsites.com';
+const SUPPORT_EMAIL = 'englerwebsites@gmail.com';
 const RESPONSES_URL = 'https://englerwebsites.com/portal';
 
 // Confirmation emails to clients. The recipient comes from the public form, so
