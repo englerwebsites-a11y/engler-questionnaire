@@ -75,5 +75,28 @@ service cloud.firestore {
                             && request.resource.data.publishedAt == request.time;
     }
 
+    // Time tracking (portal/time-tracking.html): one doc per work session. Admin only.
+    // A session starts with no end and no description; checking out sets the end once,
+    // and the description can be written or edited afterwards. Start and person never change.
+    match /timeEntries/{entryId} {
+      allow read, delete: if isAdmin();
+      allow create: if isAdmin()
+                    && request.resource.data.keys().hasOnly(['person', 'start', 'end', 'description', 'updatedAt'])
+                    && request.resource.data.person in ['Zay', 'Gabe', 'Joel']
+                    && request.resource.data.start == request.time
+                    && request.resource.data.end == null
+                    && request.resource.data.description == ''
+                    && request.resource.data.updatedAt == request.time;
+      allow update: if isAdmin()
+                    && request.resource.data.keys().hasOnly(['person', 'start', 'end', 'description', 'updatedAt'])
+                    && request.resource.data.person == resource.data.person
+                    && request.resource.data.start == resource.data.start
+                    && (request.resource.data.end == resource.data.end
+                        || (resource.data.end == null && request.resource.data.end == request.time))
+                    && request.resource.data.description is string
+                    && request.resource.data.description.size() <= 2000
+                    && request.resource.data.updatedAt == request.time;
+    }
+
   }
 }
