@@ -75,26 +75,33 @@ service cloud.firestore {
                             && request.resource.data.publishedAt == request.time;
     }
 
-    // Time tracking (portal/time-tracking.html): one doc per work session. Admin only.
-    // A session starts with no end and no description; checking out sets the end once,
-    // and the description can be written or edited afterwards. Start and person never change.
+    // Time tracking (portal/time-tracking.html): one doc per stretch of work. Admin only.
+    // A stretch starts with no end and no description; pausing or checking out sets the end
+    // once. Resuming after a pause starts a new stretch with the same session ID. Start,
+    // person and session never change; descriptions can be written or edited afterwards.
     match /timeEntries/{entryId} {
+      function fieldsOk(d) {
+        return d.keys().hasOnly(['person', 'start', 'end', 'description', 'updatedAt', 'session', 'paused'])
+            && d.description is string && d.description.size() <= 2000
+            && (!('paused' in d) || d.paused is bool)
+            && (!('session' in d) || (d.session is string && d.session.size() <= 40));
+      }
       allow read, delete: if isAdmin();
       allow create: if isAdmin()
-                    && request.resource.data.keys().hasOnly(['person', 'start', 'end', 'description', 'updatedAt'])
+                    && fieldsOk(request.resource.data)
                     && request.resource.data.person in ['Zay', 'Gabe', 'Joel']
                     && request.resource.data.start == request.time
                     && request.resource.data.end == null
+                    && request.resource.data.get('paused', false) == false
                     && request.resource.data.description == ''
                     && request.resource.data.updatedAt == request.time;
       allow update: if isAdmin()
-                    && request.resource.data.keys().hasOnly(['person', 'start', 'end', 'description', 'updatedAt'])
+                    && fieldsOk(request.resource.data)
                     && request.resource.data.person == resource.data.person
                     && request.resource.data.start == resource.data.start
+                    && request.resource.data.get('session', '') == resource.data.get('session', '')
                     && (request.resource.data.end == resource.data.end
                         || (resource.data.end == null && request.resource.data.end == request.time))
-                    && request.resource.data.description is string
-                    && request.resource.data.description.size() <= 2000
                     && request.resource.data.updatedAt == request.time;
     }
 
