@@ -76,33 +76,98 @@ service cloud.firestore {
     }
 
     // Time tracking (portal/time-tracking.html): one doc per stretch of work. Admin only.
-    // A stretch starts with no end and no description; pausing or checking out sets the end
-    // once. Resuming after a pause starts a new stretch with the same session ID. Start,
-    // person and session never change; descriptions can be written or edited afterwards.
+    // Clocked stretches start "now" with no end; pausing or checking out sets the end once, and
+    // resuming starts a new stretch with the same session ID. Sessions can also be entered by hand
+    // (source: 'added'), and a finished stretch's times can be changed (edited: true), which keeps
+    // the times from before the first edit in originalStart / originalEnd. Person, session and
+    // source never change, times can't be in the future, and a stretch is at most 24 hours.
     match /timeEntries/{entryId} {
       function fieldsOk(d) {
-        return d.keys().hasOnly(['person', 'start', 'end', 'description', 'updatedAt', 'session', 'paused'])
+        return d.keys().hasOnly(['person', 'start', 'end', 'description', 'updatedAt', 'session', 'paused',
+                                 'source', 'edited', 'originalStart', 'originalEnd'])
             && d.description is string && d.description.size() <= 2000
             && (!('paused' in d) || d.paused is bool)
-            && (!('session' in d) || (d.session is string && d.session.size() <= 40));
+            && (!('session' in d) || (d.session is string && d.session.size() <= 40))
+            && d.get('source', 'clock') in ['clock', 'added']
+            && (!('edited' in d) || d.edited is bool);
+      }
+      function sane(d) {
+        return d.start is timestamp && d.end is timestamp && d.start < d.end
+            && d.end <= request.time && d.end - d.start <= duration.value(24, 'h');
       }
       allow read, delete: if isAdmin();
       allow create: if isAdmin()
                     && fieldsOk(request.resource.data)
                     && request.resource.data.person in ['Zay', 'Gabe', 'Joel']
-                    && request.resource.data.start == request.time
-                    && request.resource.data.end == null
                     && request.resource.data.get('paused', false) == false
-                    && request.resource.data.description == ''
-                    && request.resource.data.updatedAt == request.time;
+                    && !('edited' in request.resource.data)
+                    && !('originalStart' in request.resource.data)
+                    && request.resource.data.updatedAt == request.time
+                    && ((request.resource.data.get('source', 'clock') == 'clock'
+                         && request.resource.data.start == request.time
+                         && request.resource.data.end == null
+                         && request.resource.data.description == '')
+                        || (request.resource.data.source == 'added' && sane(request.resource.data)));
       allow update: if isAdmin()
                     && fieldsOk(request.resource.data)
                     && request.resource.data.person == resource.data.person
-                    && request.resource.data.start == resource.data.start
                     && request.resource.data.get('session', '') == resource.data.get('session', '')
-                    && (request.resource.data.end == resource.data.end
-                        || (resource.data.end == null && request.resource.data.end == request.time))
-                    && request.resource.data.updatedAt == request.time;
+                    && request.resource.data.get('source', 'clock') == resource.data.get('source', 'clock')
+                    && request.resource.data.updatedAt == request.time
+                    && (
+                      // check out, pause, or write a description: times only move forward to now
+                      (request.resource.data.start == resource.data.start
+                       && (request.resource.data.end == resource.data.end
+                           || (resource.data.end == null && request.resource.data.end == request.time))
+                       && request.resource.data.get('edited', false) == resource.data.get('edited', false)
+                       && request.resource.data.get('originalStart', null) == resource.data.get('originalStart', null)
+                       && request.resource.data.get('originalEnd', null) == resource.data.get('originalEnd', null))
+                      ||
+                      // edit the times of a finished stretch
+                      (resource.data.end != null
+                       && request.resource.data.edited == true
+                       && sane(request.resource.data)
+                       && request.resource.data.originalStart == resource.data.get('originalStart', resource.data.start)
+                       && request.resource.data.originalEnd == resource.data.get('originalEnd', resource.data.end))
+                    );
+    }
+
+    // Team documents such as the owners contract (portal/contract.html). Admin can read them;
+    // nobody can change them from the website. They're written by a project owner directly.
+    match /teamDocs/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Company purchases (portal/expenses.html). Admin only. A purchase starts "pending"; its status
+    // can then be changed, which records when. Who paid and when it was logged never change.
+    match /expenses/{expenseId} {
+      function expenseOk(d) {
+        return d.keys().hasOnly(['person', 'date', 'item', 'amount', 'category', 'preApproved', 'notes',
+                                 'status', 'createdAt', 'updatedAt', 'statusChangedAt'])
+            && d.person in ['Zay', 'Gabe', 'Joel']
+            && d.date is string && d.date.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+            && d.item is string && d.item.size() > 0 && d.item.size() <= 120
+            && d.amount is number && d.amount > 0 && d.amount <= 100000
+            && d.category is string && d.category.size() <= 60
+            && d.preApproved in ['yes', 'under15', 'no']
+            && d.notes is string && d.notes.size() <= 1000
+            && d.status in ['pending', 'approved', 'reimbursed', 'denied']
+            && d.updatedAt == request.time;
+      }
+      allow read, delete: if isAdmin();
+      allow create: if isAdmin()
+                    && expenseOk(request.resource.data)
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.createdAt == request.time
+                    && request.resource.data.statusChangedAt == request.time;
+      allow update: if isAdmin()
+                    && expenseOk(request.resource.data)
+                    && request.resource.data.person == resource.data.person
+                    && request.resource.data.createdAt == resource.data.createdAt
+                    && (request.resource.data.status == resource.data.status
+                        ? request.resource.data.statusChangedAt == resource.data.statusChangedAt
+                        : request.resource.data.statusChangedAt == request.time);
     }
 
   }
