@@ -170,5 +170,16 @@ service cloud.firestore {
                         : request.resource.data.statusChangedAt == request.time);
     }
 
+    // Invoice checklist progress (portal/checklist.html), one doc per order form:
+    // { items: { <requirement>: { status, date, by } }, updatedAt }. Admin only.
+    match /checklists/{submissionId} {
+      allow read, delete: if isAdmin();
+      allow create, update: if isAdmin()
+                            && request.resource.data.keys().hasOnly(['items', 'updatedAt'])
+                            && request.resource.data.items is map
+                            && request.resource.data.items.size() <= 300
+                            && request.resource.data.updatedAt == request.time;
+    }
+
   }
 }
